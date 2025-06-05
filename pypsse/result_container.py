@@ -102,8 +102,10 @@ class Container:
         """
 
         if self.export_settings.file_format not in self.BULK_WRITE_MODES:
+            # logger.debug("1111111111111111111")
             self.dataWriter.write(time, bus_data, has_converged)
         else:
+            # logger.debug("2222222222222222222222")
             for variable_name, _ in bus_data.items():
                 if not isinstance(self.results[f"{variable_name}"], pd.DataFrame):
                     self.results[f"{variable_name}"] = pd.DataFrame(bus_data[variable_name], index=[0])

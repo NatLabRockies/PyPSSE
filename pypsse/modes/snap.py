@@ -1,5 +1,6 @@
 import numpy as np
 from loguru import logger
+import os
 
 from pypsse.models import SimulationSettings, ExportFileOptions
 from pypsse.modes.abstract_mode import AbstractMode
@@ -134,12 +135,20 @@ class Snap(AbstractMode, DynamicUtils):
             ext_string2_info = {}
         if mapping_dict is None:
             mapping_dict = {}
+        
         results = super().read_subsystems(
             quantities, subsystem_buses, mapping_dict=mapping_dict, ext_string2_info=ext_string2_info
         )
-
+        # logger.debug(f"snap.py results : {results}")
+        # logger.debug(f"quantities : {quantities}")
+        # logger.debug(f"subsystem_buses : {subsystem_buses}")
+        # logger.debug(f"mapping_dict : {mapping_dict}")
+        # logger.debug(f"ext_string2_info : {ext_string2_info}")
+        # raise Exception(1)
         poll_results = self.poll_channels()
         results.update(poll_results)
+        # logger.debug(f"snap.py updated results : {results}")
+        # os.system("PAUSE")
         """ Add """
         for class_name, var_list in quantities.items():
             if class_name in dyn_only_options:
@@ -169,6 +178,6 @@ class Snap(AbstractMode, DynamicUtils):
                                                 obj_name = f"{bus}_{ld_id}"
                                                 results[res_base][obj_name] = value
             else:
-                logger.warning("Extend function 'read_subsystems' in the Snap class (Snap.py)")
+                logger.warning(f"{class_name} not in the option")
 
         return results

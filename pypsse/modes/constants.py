@@ -205,7 +205,10 @@ def converter(func):
             status_translation = {1: "connected", 0: "notconnected"}
             if param.lower() == "status":
                 for key, value in sub_dict.items():
-                    sub_dict[key] = status_translation[value]
+                    if value == "connected" or "notconnected":
+                        sub_dict[key] = value
+                    else:
+                        sub_dict[key] = status_translation[value]
 
             if class_name in complex_conversion_dict:
                 conv_dict = complex_conversion_dict[class_name]

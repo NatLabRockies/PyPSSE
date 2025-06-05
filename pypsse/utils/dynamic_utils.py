@@ -299,7 +299,7 @@ class DynamicUtils:
             self.channel_map["LOAD_Q"][f"{b}_{ld}"] = [self.chnl_idx + 1]
             self.psse.load_array_channel([self.chnl_idx, 1, int(b)], ld, "")
             self.psse.load_array_channel([self.chnl_idx + 1, 2, int(b)], ld, "")
-            # logger.info(f"P and Q for load {b}_{ld} added to channel {self.chnl_idx} and {self.chnl_idx + 1}")
+            logger.info(f"P and Q for load {b}_{ld} added to channel {self.chnl_idx} and {self.chnl_idx + 1}")
             self.chnl_idx += 2
 
     def setup_bus_channels(self, buses: list, properties: list):

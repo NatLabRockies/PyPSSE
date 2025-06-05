@@ -164,10 +164,10 @@ class Simulator(DynamicUtils):
 
         self.hi = None
         self.simStartTime = time.time()
-
-        if self.settings.simulation.case_study.exists():
+        
+        if self.settings.simulation.case_study is not None and self.settings.simulation.case_study.exists():
             self.psse.case(str(self.settings.simulation.case_study))
-        elif self.settings.simulation.raw_file.exists():
+        elif self.settings.simulation.raw_file is not None and self.settings.simulation.raw_file.exists():
             self.psse.read(0, str(self.settings.simulation.raw_file))
         else:
             msg = "Please pass a RAW or SAV file in the settings dictionary"
@@ -324,7 +324,7 @@ class Simulator(DynamicUtils):
                 bokeh_server_proc = None
 
             logger.debug(
-                f"Running dynamic simulation for time {self.settings.simulation.simulation_time.total_seconds()} sec"
+                 f"Running {self.settings.simulation.simulation_mode.value} simulation for time {self.settings.simulation.simulation_time.total_seconds()} sec"
             )
             total_simulation_time = (
                 self.settings.simulation.simulation_time.total_seconds()
@@ -440,6 +440,7 @@ class Simulator(DynamicUtils):
         """
 
         if self.export_settings.defined_subsystems_only:
+            logger.debug(f"self.exp_vars : {self.exp_vars}")
             curr_results = self.sim.read_subsystems(
                 self.exp_vars, self.all_subsysten_buses
             )
@@ -450,6 +451,7 @@ class Simulator(DynamicUtils):
 
         if not USING_NAERM:
             if not self.export_settings.export_results_using_channels:
+                # logger.debug(f"curr_results : {curr_results}")
                 self.results.update(
                     curr_results,
                     t,

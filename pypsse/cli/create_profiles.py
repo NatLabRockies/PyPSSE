@@ -19,7 +19,7 @@ from pypsse.profile_manager.common import (
     PROFILE_VALIDATION,
 )
 from pypsse.profile_manager.profile_store import ProfileManager
-
+from pypsse.models import SimulationSettings
 
 @click.argument(
     "project-path",
@@ -84,38 +84,41 @@ def create_profiles(
     project_path, csv_file_path, profile_folder, profile_name, profile_type, start_time, profile_res, profile_info
 ):
     """Creates profiles for PyPSSE project."""
-    settings_file = os.path.join(project_path, "Settings", SIMULATION_SETTINGS_FILENAME)
+    settings_file = os.path.join(project_path, SIMULATION_SETTINGS_FILENAME)
     if os.path.exists(settings_file):
         if csv_file_path and os.path.exists(csv_file_path):
             settings = toml.load(settings_file)
+            settings = SimulationSettings.model_validate(settings)
+
             a = ProfileManager(None, settings)
             a.add_profiles_from_csv(
                 csv_file=csv_file_path,
                 name=profile_name,
-                pType=profile_type,
-                startTime=dt.datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S.%f").astimezone(None),
+                p_type=profile_type,
+                start_time=dt.datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S.%f").astimezone(None),
                 resolution_sec=profile_res,
                 info=profile_info,
             )
             logger.info(f"Profile '{profile_name}' added to group '{profile_type}'")
         elif os.path.exists(profile_folder):
             settings = toml.load(settings_file)
+            settings = SimulationSettings.model_validate(settings)
             a = ProfileManager(None, settings)
             for _, _, files in os.walk(profile_folder):
                 for file in files:
                     if file.endswith(".csv"):
                         filename = file.replace(".csv", "")
                         if "__" in filename:
-                            dtype, p_name = filename.split("__")
+                            p_type, p_name = filename.split("__")
                             a.add_profiles_from_csv(
                                 csv_file=os.path.join(profile_folder, file),
                                 name=p_name,
-                                pType=dtype,
-                                startTime=dt.datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S.%f").astimezone(None),
+                                p_type=p_type,
+                                start_time=dt.datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S.%f"),
                                 resolution_sec=profile_res,
                                 info=profile_info,
                             )
-                            msg = f"Profile '{p_name}'' added to group '{dtype}'"
+                            msg = f"Profile '{p_name}'' added to group '{p_type}'"
                             logger.info(msg)
         else:
             msg = "Value for either -f or -p flag has to be passed"

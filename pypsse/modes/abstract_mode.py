@@ -421,7 +421,6 @@ class AbstractMode:
 
                 while ierr == 0:
                     ierr, val = self.psse.loddt2(int(b), load_id, "TOTAL", "ACT")
-
                     if isinstance(val, complex):
                         load_mw += val.real
                     ierr, load_id = self.psse.nxtlod(int(b))
@@ -510,7 +509,7 @@ class AbstractMode:
             ext_string2_info = {}
         if mapping_dict is None:
             mapping_dict = {}
-
+        # logger.debug(f" subsystem_buses : {subsystem_buses}") 
         results = {}
         area_numbers = self.get_area_numbers(subsystem_buses)
         zone_numbers = self.get_zone_numbers(subsystem_buses)
@@ -518,12 +517,18 @@ class AbstractMode:
         substation_numbers = self.get_substation_numbers(subsystem_buses)
 
         for class_name, var_list in quantities.items():
+            # logger.debug(f"class_name : {class_name}, var_list : {var_list}") 
+            # logger.debug(f"self.func_options : {self.func_options}") 
             if class_name in self.func_options:
                 funcs = self.func_options[class_name]
+                # logger.debug(f"funcs : {funcs}") 
                 for id_, v in enumerate(var_list):
                     for func_name, settinsgs in funcs.items():
+                        # logger.debug(f"func_name : {func_name}, settinsgs : {settinsgs}") 
                         if v in settinsgs:
                             q = f"{class_name}_{v}"
+                            # logger.debug(f"q : {q}") 
+                            # os.system("PAUSE")
 
                             if len(mapping_dict) != 0:
                                 if class_name in mapping_dict:
@@ -592,6 +597,7 @@ class AbstractMode:
 
                             else:
                                 for b in subsystem_buses:
+                                    # logger.debug(f"bus : {b}") 
                                     if func_name in [
                                         "busdat",
                                         "busdt2",
@@ -664,6 +670,7 @@ class AbstractMode:
                                     elif func_name in ["inddt1", "inddt2", "indnofunc"]:
                                         ierr = self.psse.iniind(int(b))
                                         if ierr:
+                                            # os.system("PAUSE")
                                             logger.info("No induction machine in the model")
                                         else:
                                             ierr, ind_id = self.psse.nxtind(int(b))
@@ -671,39 +678,222 @@ class AbstractMode:
                                                 if func_name == "indnofunc":
                                                     if v in ["BUSNUM", "INDID"]:
                                                         val = {"INDID": ind_id, "BUSNUM": int(b)}[v]
-                                                        results = self.add_result(results, q, val, f"{ind_id}_{b}")
+                                                        results = self.add_result(results, q, val, f"{b}_{ind_id}")
                                                     elif v == "BUSNAME":
                                                         irr, val = self.psse.notona(int(b))
-                                                        results = self.add_result(results, q, val, f"{ind_id}_{b}")
+                                                        results = self.add_result(results, q, val, f"{b}_{ind_id}")
                                                 else:
                                                     ierr, val = getattr(self.psse, func_name)(int(b), ind_id, v)
-                                                    results = self.add_result(results, q, val, f"{ind_id}_{b}")
+                                                    results = self.add_result(results, q, val, f"{b}_{ind_id}")
                                                 ierr, ind_id = self.psse.nxtind(int(b))
 
                                     elif func_name in ["loddt2", "lodnofunc", "lodint"]:
                                         ierr = self.psse.inilod(int(b))
-
+                                        # logger.debug(f"func_name : {func_name}")
+                                        # logger.debug(f"bus : {b}")
                                         ierr, load_id = self.psse.nxtlod(int(b))
+                                        # logger.debug(f"first load_id : {load_id}")
 
                                         while load_id is not None:
                                             if func_name == "lodnofunc":
                                                 if v in ["BUSNUM", "LOADID"]:
                                                     val = {"LOADID": load_id, "BUSNUM": int(b)}[v]
-                                                    results = self.add_result(results, q, val, f"{load_id}_{b}")
+                                                    results = self.add_result(results, q, val, f"{b}_{load_id}")
                                                 elif v == "BUSNAME":
                                                     ierr, val = self.psse.notona(int(b))
-
-                                                    results = self.add_result(results, q, val, f"{load_id}_{b}")
+                                                    
+                                                    results = self.add_result(results, q, val, f"{b}_{load_id}")
                                             elif func_name == "loddt2":
                                                 ierr, val = getattr(self.psse, func_name)(int(b), load_id, v, "ACT")
+                                                results = self.add_result(results, q, val, f"{b}_{load_id}")
+                                                # if int(b) == 10446 or int(b) == 10466 or int(b) == 10493:
+                                                #     logger.debug(f"loddt2 -> int(b): {int(b)}, load_id: {load_id}, v: {v}, ierr : {ierr}, val : {val}")
+                                                #     ierr, state_index = self.psse.lmodind(int(b), load_id, "CHARAC", "STATE")
+                                                #     assert ierr == 0, f"error={ierr}"
+                                                #     if state_index is not None:
+                                                #         act_state_index = state_index + 20
+                                                #         ierr, value = self.psse.dsrval("STATE", act_state_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Motor D: non-restartable compressor motor A temperature - Load: {int(b)}-{load_id} -> index: {act_state_index}, value:{value}")
+                                                #         act_state_index = state_index + 21
+                                                #         ierr, value = self.psse.dsrval("STATE", act_state_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Motor D: restartable compressor motor B temperature - Load: {int(b)}-{load_id} -> index: {act_state_index}, value:{value}")
+                                                #     ierr, var_index = self.psse.lmodind(int(b), load_id, "CHARAC", "VAR")
+                                                #     assert ierr == 0, f"error={ierr}"
+                                                #     if var_index is not None:
+                                                #         act_var_index = var_index + 0
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Load MVA base - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 12
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Transformer tap - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 13
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Transformer low side voltage real part - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 14
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Transformer low side voltage imaginary part - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 15
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Load bus voltage real part - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 16
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Load bus voltage imaginary part - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 20
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Sum of substation shunt admittance and feeder compensation admittance at substation end - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 21
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Substation shunt admittance - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 24
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Transformer reactance (pu on system MVA base) - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 25
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Static load real part (pu on system MVA base) - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 26
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Static load reactive part (pu on system MVA base) - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 29
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Load bus voltage magnitude - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 30
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Low side bus voltage magnitude - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 37
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Motor D P (pu on system MVA base) - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 38
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Motor D Q (pu on system MVA base) - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 53
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Initial value of Motor D P (pu on system MVA base) - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 54
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Initial value of Motor D Q (pu on system MVA base) - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 55
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Feeder compensation admittance at substation end - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 56
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Feeder compensation admittance at far end - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 60
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Calculated Vstallbrk - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 66
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Initial value of Motor D MVA base - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 117
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Motor D: Bus voltage (pu) - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 118
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Motor D: Bus frequency (pu) - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 119
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Motor D: Aggregated AC unit real power (MW) - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 120
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Motor D: Aggregated AC unit reactive power (MVAr) - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 121
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Motor D: Aggregated AC unit current (pu on system MVA base) - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 124
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Terminal current component on network real axis on system MVA base (pu) - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 125
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Terminal current comp on network imaginary axis on system MVA base (pu) - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 126
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Motor D: non-restartable motor A and restartable motor B Initial Temperature - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 131
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Motor D: KthA non-restartable compressor motor A fraction not tripped by thermal protection - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 133
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Motor D: non-restartable Motor A run / stall state (run=1/stall=0) - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 134
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Motor D: restartable Motor B run / stall state (run=1/stall=0) - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 135
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Motor D: KthB restartable compressor motor B fraction not tripped by thermal protection - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 136
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Internal variable used for determining non-restartable motor A temperature - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 137
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Internal variable used for determining restartable motor B temperature - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 138
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Motor D: Real component of voltage at pervious time step (pu) - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 139
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Motor D: Reactive component of voltage at previous time step (pu) - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 141
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Motor D: Internal variable, P0 for active power at 1.0 pu voltage - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 142
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Motor D: Internal variable, Q0 for reactive power at 1.0 pu voltage - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 143
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Motor D: Computed motor MVA base - Load: {int(b)}-{load_id} -> index: {act_var_index}, value:{value}")
 
-                                                results = self.add_result(results, q, val, f"{load_id}_{b}")
+                                                # os.system("PAUSE")
                                             elif func_name == "lodint":
                                                 ierr, val = getattr(self.psse, func_name)(int(b), load_id, v)
 
-                                                results = self.add_result(results, q, val, f"{load_id}_{b}")
-
+                                                results = self.add_result(results, q, val, f"{b}_{load_id}")
+                                        #     logger.debug(f"val : {val}")
+                                        #     logger.debug(f"v : {v}")
                                             ierr, load_id = self.psse.nxtlod(int(b))
+                                        #     logger.debug(f"next load_id : {load_id}")
+                                        # logger.debug(f"results : {results}")
+                                        # os.system("PAUSE")
 
                                     elif func_name in ["macdat", "macdt2", "macnofunc", "macint"]:
                                         ierr = self.psse.inimac(int(b))
@@ -712,19 +902,19 @@ class AbstractMode:
                                             if func_name == "macnofunc":
                                                 if v in ["BUSNUM", "MACID"]:
                                                     val = {"BUSNUM": int(b), "MACID": mach_id}[v]
-                                                    results = self.add_result(results, q, val, f"{mach_id}_{b}")
+                                                    results = self.add_result(results, q, val, f"{b}_{mach_id}")
                                                 elif v == "BUSNAME":
                                                     ierr, val = self.psse.notona(int(b))
-                                                    results = self.add_result(results, q, val, f"{mach_id}_{b}")
+                                                    results = self.add_result(results, q, val, f"{b}_{mach_id}")
                                                 elif v == "SUBNUMBER":
                                                     ierr, val = self.psse.busint(int(b), "STATION")
 
-                                                    results = self.add_result(results, q, val, f"{mach_id}_{b}")
+                                                    results = self.add_result(results, q, val, f"{b}_{mach_id}")
 
                                                 elif v == "AREANUMBER":
                                                     ierr, val = self.psse.busint(int(b), "AREA")
 
-                                                    results = self.add_result(results, q, val, f"{mach_id}_{b}")
+                                                    results = self.add_result(results, q, val, f"{b}_{mach_id}")
 
                                                 elif v in ["SUBLATITUDE", "SUBLONGITUDE"]:
                                                     sub_dict = {"SUBLATITUDE": "LATI", "SUBLONGITUDE": "LONG"}
@@ -735,9 +925,82 @@ class AbstractMode:
 
                                                     results = self.add_result(results, q, val, b)
                                             else:
+                                                logger.debug(f"machine -> int(b): {int(b)}, mach_id: {mach_id}, func_name: {func_name}, v: {v}")
+                                                # if mach_id == "PV":
+                                                #     ierr, state_index = self.psse.windmind(int(b), mach_id, 'WGEN', 'STATE')
+                                                #     assert ierr == 0, f"error={ierr}"
+                                                #     if state_index is not None:
+                                                #         act_state_index = state_index + 0
+                                                #         ierr, value = self.psse.dsrval("STATE", act_state_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"voltage measurement lag: {int(b)}-{mach_id} -> index: {act_state_index}, value:{value}")
+                                                #         act_state_index = state_index + 1
+                                                #         ierr, value = self.psse.dsrval("STATE", act_state_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"generator power measurement lag: {int(b)}-{mach_id} -> index: {act_state_index}, value:{value}")
+                                                #         act_state_index = state_index + 2
+                                                #         ierr, value = self.psse.dsrval("STATE", act_state_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"first order lag for reactive current: {int(b)}-{mach_id} -> index: {act_state_index}, value:{value}")
+                                                #         act_state_index = state_index + 3
+                                                #         ierr, value = self.psse.dsrval("STATE", act_state_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"lag block representing inner current loop for iq: {int(b)}-{mach_id} -> index: {act_state_index}, value:{value}")
+                                                #         act_state_index = state_index + 4
+                                                #         ierr, value = self.psse.dsrval("STATE", act_state_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"lag block for output of multiplier block: {int(b)}-{mach_id} -> index: {act_state_index}, value:{value}")
+                                                #         act_state_index = state_index + 8
+                                                #         ierr, value = self.psse.dsrval("STATE", act_state_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"first order lag for Pord: {int(b)}-{mach_id} -> index: {act_state_index}, value:{value}")
+                                                #         act_state_index = state_index + 9
+                                                #         ierr, value = self.psse.dsrval("STATE", act_state_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"lag block representing inner current loop for id: {int(b)}-{mach_id} -> index: {act_state_index}, value:{value}")
+                                                #     ierr, var_index = self.psse.windmind(int(b), mach_id, 'WGEN', 'VAR')
+                                                #     assert ierr == 0, f"error={ierr}"
+                                                #     if var_index is not None:
+                                                #         act_var_index = var_index + 0
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"bus voltage reference (Vref0): {int(b)}-{mach_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 1
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"power factor angle reference (pfaref), radians: {int(b)}-{mach_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 3
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"active power reference (Pref): {int(b)}-{mach_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 4
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"reactive power reference (Qref): {int(b)}-{mach_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 7
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Ipcmd: {int(b)}-{mach_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 8
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"Iqcmd: {int(b)}-{mach_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 11
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"output of undervoltage voltage multiplier block: {int(b)}-{mach_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 12
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"output of overvoltage voltage multiplier block: {int(b)}-{mach_id} -> index: {act_var_index}, value:{value}")
+                                                #         act_var_index = var_index + 22
+                                                #         ierr, value = self.psse.dsrval("VAR", act_var_index)
+                                                #         assert ierr == 0, f"error={ierr}"
+                                                #         logger.debug(f"reactive current injection, Iqinj: {int(b)}-{mach_id} -> index: {act_var_index}, value:{value}")
+                                                # # os.system("PAUSE")
                                                 ierr, val = getattr(self.psse, func_name)(int(b), mach_id, v)
 
-                                                results = self.add_result(results, q, val, f"{mach_id}_{b}")
+                                                results = self.add_result(results, q, val, f"{b}_{mach_id}")
                                             ierr, mach_id = self.psse.nxtmac(int(b))
 
                                     elif func_name in ["fxsdt2", "fxsnofunc"]:
@@ -749,15 +1012,15 @@ class AbstractMode:
                                             if func_name == "fxsnofunc":
                                                 if v in ["BUSNUM", "FXSHID"]:
                                                     val = {"BUSNUM": int(b), "FXSHID": fx_id}[v]
-                                                    results = self.add_result(results, q, val, f"{fx_id}_{b}")
+                                                    results = self.add_result(results, q, val, f"{b}_{fx_id}")
                                                 elif v == "BUSNAME":
                                                     ierr, val = self.psse.notona(int(b))
 
-                                                    results = self.add_result(results, q, val, f"{fx_id}_{b}")
+                                                    results = self.add_result(results, q, val, f"{b}_{fx_id}")
                                             else:
                                                 ierr, val = getattr(self.psse, func_name)(int(b), fx_id, v)
 
-                                                results = self.add_result(results, q, val, f"{fx_id}_{b}")
+                                                results = self.add_result(results, q, val, f"{b}_{fx_id}")
                                             ierr, fx_id = self.psse.nxtfxs(int(b))
 
                                     elif func_name in ["swsdt1", "swsnofunc"]:

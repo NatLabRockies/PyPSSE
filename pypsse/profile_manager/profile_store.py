@@ -194,9 +194,11 @@ class ProfileManager:
             ValueError: rasied if invalid profile type passed
         """
 
-        if p_type not in ProfileTypes:
+        if p_type not in [p.value for p in ProfileTypes]:
             msg = f"Valid profile types are: {list(PROFILE_VALIDATION.keys())}"
             raise ValueError(msg)
+        
+        p_type = getattr(ProfileTypes,[p.name for p in ProfileTypes if p.value == p_type][0])
         logger.debug("Reading profile")
         data = pd.read_csv(csv_file)
 
@@ -246,7 +248,7 @@ class ProfileManager:
     def create_metadata(
         self,
         d_set: str,
-        start_time: datetime.date,
+        start_time: datetime.datetime,
         resolution: float,
         data: object,
         units: str,
@@ -298,5 +300,5 @@ class ProfileManager:
             
         return results
 
-    def __del__(self):
-        self.store.flush()
+    # def __del__(self):
+    #     self.store.flush()

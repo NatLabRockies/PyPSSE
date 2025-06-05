@@ -25,6 +25,7 @@ DEFAULT_EXCEL_FILE = "results.xls"
 DEFAULT_LOG_FILE = "psse.log"
 DEFAULT_GRAPH_FILE = "network.gpickle"
 DEFAULT_COORDINATES_FILE = "coordinates.csv"
+DEFAULT_PROFILE_EXPORT_FILE = "profiles.csv"
 
 MAPPED_CLASS_NAMES = {
     "buses": "Buses",

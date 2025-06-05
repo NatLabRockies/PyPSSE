@@ -8,7 +8,7 @@ from pypsse.profile_manager.common import PROFILE_VALIDATION
 
 
 class Profile:
-    "Class defination fora single profile"
+    "Class defination for single profile"
 
     DEFAULT_SETTINGS = {"multiplier": 1, "normalize": False, "interpolate": False}
 

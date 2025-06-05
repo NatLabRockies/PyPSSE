@@ -41,7 +41,7 @@ asset_properties = [ "FREQ", "PU",]
 
 [log]
 disable_psse_logging = true
-logging_level = 10
+logging_level = "DEBUG"
 log_to_external_file = true
 display_on_screen = true
 clear_old_log_file = true
