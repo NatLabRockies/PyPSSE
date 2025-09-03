@@ -15,12 +15,13 @@ class Snap(AbstractMode, DynamicUtils):
         self,
         psse,
         dyntools,
+        der,
         settings: SimulationSettings,
         export_settings: ExportFileOptions,
         subsystem_buses,
         raw_data,
     ):
-        super().__init__(psse, dyntools, settings, export_settings, subsystem_buses, raw_data)
+        super().__init__(psse, dyntools, der, settings, export_settings, subsystem_buses, raw_data)
         self.time = settings.simulation.start_time
         self._StartTime = settings.simulation.start_time
         self.incTime = settings.simulation.simulation_step_resolution
@@ -87,8 +88,10 @@ class Snap(AbstractMode, DynamicUtils):
 
     def step(self, t):
         "Increments the simulation"
+        logger.debug(f"snap.py step : {t}")
         self.time = self.time + self.incTime
         self.xTime = 0
+        self.der.update_ibr()
         return self.psse.run(0, t + self.incTime.total_seconds(), 1, 1, 1)
 
     def resolve_step(self, t):

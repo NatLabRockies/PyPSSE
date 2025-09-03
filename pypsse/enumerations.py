@@ -28,6 +28,10 @@ class SimulationModes(str, Enum):
     STATIC = "Steady-state"
     DYNAMIC = "Dynamic"
 
+class GenerationLevel(str, Enum):
+    "Valid generation level setting modes"
+    TRANSMISSION = "transmission"
+    DISTRIBUTION = "distribution"
 
 class HelicsCoreTypes(str, Enum):
     "HELICS core types"

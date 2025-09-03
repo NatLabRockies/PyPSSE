@@ -6,7 +6,7 @@ from loguru import logger
 
 from pypsse.common import MACHINE_CHANNELS
 from pypsse.modes.constants import dyn_only_options
-
+import re
 
 class DynamicUtils:
     "Utility functions for dynamic simulations"
@@ -15,15 +15,13 @@ class DynamicUtils:
 
     def disable_generation_for_coupled_buses(self):
         """Disables generation of coupled buses (co-simulation mode only)"""
-        if (
-            self.settings.helics
-            and self.settings.helics.cosimulation_mode
-            and self.settings.helics.disable_generation_on_coupled_buses
-        ):
+        if ((self.settings.helics and self.settings.helics.cosimulation_mode and self.settings.simulation.disable_generation_on_coupled_buses) # cosim mode, load in distribution level
+            or (self.settings.simulation.disable_generation_on_coupled_buses and self.settings.simulation.generation_model_level.lower() == "transmission" and self.settings.simulation.generation_std.lower() == "ieee2800")): 
             sub_data = pd.read_csv(self.settings.simulation.subscriptions_file)
             sub_data = sub_data[sub_data["element_type"] == "Load"]
             generators = {}
             generator_list = {}
+            generator_data = {}
 
             for gen_bus, gen_id in self.raw_data.generators:
                 if gen_bus not in generator_list:
@@ -56,9 +54,53 @@ class DynamicUtils:
                         self._f,
                         self._f,
                     ]
+                    ierr, machine_pg = self.psse.macdat(bus_id,machine,'P')
+                    ierr, machine_qg = self.psse.macdat(bus_id,machine,'Q')
+                    ierr, machine_base = self.psse.macdat(bus_id,machine,'MBASE')
+                    if ierr == 0:
+                        generator_data[f"{bus_id}_{machine}"] = {
+                            "pg": machine_pg,
+                            "qg": machine_qg,
+                            "base": machine_base
+                        }
                     self.psse.machine_chng_2(bus_id, machine, intgar, realar)
-                    logger.info(f"Machine disabled: {bus_id}_{machine}")
+                    logger.info(f"Machine disabled: {bus_id}_{machine} (pg={machine_pg},qg={machine_qg},base={machine_base})")
+            
+            if self.settings.simulation.generation_model_level.lower() == "transmission":
+                # generation is still in transmission level but use different modeling method
+                if self.settings.simulation.generation_std.lower() == "ieee2800":
+                    logger.debug(f"Added IBR with IEEE STD 2800")
+                    for bus_id, machines in generators.items():
+                        for machine in machines:
+                            machine_id = f"{bus_id}_{machine}"
+                            if machine_id in generator_data.keys():
+                                ibr_data = generator_data[f"{bus_id}_{machine}"]
+                                pg = ibr_data["pg"]
+                                qg = ibr_data["qg"]
+                                base = ibr_data["base"]
+                                ibr_id = f"ir"
+                                logger.info(f"IBR added: {bus_id}_{machine} (pg={machine_pg},qg={machine_qg},base={machine_base})")
+                                ibr_dt = self.settings.simulation.simulation_step_resolution.total_seconds()
+                                self.der.add_ibr([bus_id],[pg],[qg],[ibr_id],ibr_dt)
+                                # logger.info("##################### add channel #########################")
+                                # self.update_loadchannel_asset_list("loads", [ibr_id, f"{bus_id}"])
+                else:
+                    # TODO
+                 raise Exception("STD has not been implemented")
+
             # os.system("PAUSE")
+
+    def update_loadchannel_asset_list(self,assset_type, asset):
+        for n in range(len(self.export_settings.channel_setup)):
+            channel = self.export_settings.channel_setup[n]
+            method_type = channel.asset_type
+            if method_type == assset_type:
+                logger.info(channel)
+                asset_list = channel.asset_list
+                if asset not in asset_list:
+                    asset_list.append(asset)
+                self.export_settings.channel_setup[n].asset_list = asset_list
+
 
     def disable_load_models_for_coupled_buses(self):
         """Disables loads of coupled buses (co-simulation mode only)"""
@@ -293,12 +335,13 @@ class DynamicUtils:
         if "LOAD_P" not in self.channel_map:
             self.channel_map["LOAD_P"] = {}
             self.channel_map["LOAD_Q"] = {}
-
+        # logger.info(f"loads {loads}")
         for ld, b in loads:
+            logger.info(f"P and Q for load {b}_{ld}")
             self.channel_map["LOAD_P"][f"{b}_{ld}"] = [self.chnl_idx]
             self.channel_map["LOAD_Q"][f"{b}_{ld}"] = [self.chnl_idx + 1]
-            self.psse.load_array_channel([self.chnl_idx, 1, int(b)], ld, "")
-            self.psse.load_array_channel([self.chnl_idx + 1, 2, int(b)], ld, "")
+            ierr = self.psse.load_array_channel([self.chnl_idx, 1, int(b)], ld, ""); assert ierr == 0, f"error={ierr}"
+            ierr = self.psse.load_array_channel([self.chnl_idx + 1, 2, int(b)], ld, ""); assert ierr == 0, f"error={ierr}"
             logger.info(f"P and Q for load {b}_{ld} added to channel {self.chnl_idx} and {self.chnl_idx + 1}")
             self.chnl_idx += 2
 
@@ -333,6 +376,7 @@ class DynamicUtils:
         """
 
         results = {}
+        # logger.info(f"self.channel_map: {self.channel_map}")
         for ppty, b_dict in self.channel_map.items():
             ppty_new = ppty.split("_and_")
             for b, indices in b_dict.items():
@@ -357,6 +401,8 @@ class DynamicUtils:
         self.chnl_idx = 1
         if not self.export_settings.channel_setup:
             return
+        ierr = self.psse.delete_all_plot_channels(); assert ierr == 0, f"error={ierr}"
+        # logger.info(f"self.export_settings.channel_setup {self.export_settings.channel_setup}")
 
         for channel in self.export_settings.channel_setup:
             method_type = channel.asset_type
@@ -368,3 +414,5 @@ class DynamicUtils:
             elif method_type == "machines":
                 machine_list = [[x, int(y)] for x, y in channel.asset_list]
                 self.setup_machine_channels(machine_list, channel.asset_properties)
+                
+

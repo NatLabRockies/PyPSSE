@@ -15,6 +15,7 @@ class AbstractMode:
         self,
         psse,
         dyntools,
+        der,
         settings: SimulationSettings,
         export_settings: ExportFileOptions,
         subsystem_buses,
@@ -34,6 +35,7 @@ class AbstractMode:
 
         self.sub_buses = subsystem_buses
         self.dyntools = dyntools
+        self.der = der
         self.settings = settings
         self.export_settings = export_settings
         self.func_options = {
@@ -1272,7 +1274,8 @@ class AbstractMode:
                 ierr = 1
 
             if ierr == 0:
-                logger.info(f"Profile Manager: {dtype} '{element_id}' on bus '{bus}' has been updated. {values}")
+                # logger.info(f"Profile Manager: {dtype} '{element_id}' on bus '{bus}' has been updated. {values}")
+                pass
             else:
                 logger.error(f"Profile Manager: Error updating {dtype} '{element_id}' on bus '{bus}'.")
 

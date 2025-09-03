@@ -50,6 +50,8 @@ from pypsse.models import Contingencies
 from pypsse.enumerations import PSSE_VERSIONS
 from pypsse.utils.dynamic_utils import DynamicUtils
 
+from aggregatedderapp import App
+
 USING_NAERM = 0
 
 N_BUS = 200000
@@ -107,6 +109,7 @@ class Simulator(DynamicUtils):
 
         self.dyntools = dyntools
         self.psse = psspy
+        self.der = App(showProgress=True)
         # logger.debug('Initializing PSS/E. connecting to license server')
 
         self.start_simulation()
@@ -190,6 +193,7 @@ class Simulator(DynamicUtils):
         self.sim = sc.sim_controller(
             self.psse,
             self.dyntools,
+            self.der,
             self.settings,
             self.export_settings,
             valid_buses,
@@ -389,20 +393,6 @@ class Simulator(DynamicUtils):
                 # logger.debug(f"Time granted: {helics_time}")
                 self.update_subscriptions()
 
-        # pypsse_update_agian = "y"
-        # while pypsse_update_agian != "no":
-        #     pypsse_update_agian = input('enter your pypsse update command: ')
-        #     if pypsse_update_agian == "y":
-        #         if self.settings.helics and self.settings.helics.cosimulation_mode:
-        #             if self.settings.helics.create_subscriptions:
-        #                 self.update_subscriptions()
-        #                 logger.debug(f"Time requested: {t}")
-        #                 self.inc_time, helics_time = self.update_federate_time(t)
-        #                 logger.debug(f"Time granted: {helics_time}")
-        #     elif pypsse_update_agian == "u":
-        #         if self.settings.helics and self.settings.helics.cosimulation_mode:
-        #             self.publish_data()
-
         if self.inc_time:
             logger.debug(f"run PSSE simulation at time: {t}")
             self.sim.step(t)
@@ -440,7 +430,7 @@ class Simulator(DynamicUtils):
         """
 
         if self.export_settings.defined_subsystems_only:
-            logger.debug(f"self.exp_vars : {self.exp_vars}")
+            # logger.debug(f"self.exp_vars : {self.exp_vars}")
             curr_results = self.sim.read_subsystems(
                 self.exp_vars, self.all_subsysten_buses
             )
@@ -493,7 +483,7 @@ class Simulator(DynamicUtils):
         Returns:
             dict: simulation results
         """
-
+        logger.debug(f"self.exp_vars : {self.exp_vars}")
         self._status = SimulationStatus.STARTING_RESULT_EXPORT
         self.exp_vars = self.results.update_export_variables(params)
         curr_results = (

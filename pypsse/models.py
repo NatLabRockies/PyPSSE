@@ -33,6 +33,7 @@ from pypsse.enumerations import (
     UseModes,
     WritableModelTypes,
     ZoneProperties,
+    GenerationLevel,
 )
 
 
@@ -55,6 +56,9 @@ class SimSettings(BaseModel):
     user_models: List[str] = []
     setup_files: List[str] = []
     simulation_mode: SimulationModes
+    disable_generation_on_coupled_buses: bool = True
+    generation_model_level: GenerationLevel
+    generation_std: str = "psse"
 
     @model_validator(mode="after")
     def sim_res_smaller_than_sim_time(self):
@@ -173,7 +177,6 @@ class HelicsSettings(BaseModel):
     max_coiterations: int = Field(15, ge=1)
     broker_ip: IPvAnyAddress = "127.0.0.1"
     broker_port: int = 23404
-    disable_generation_on_coupled_buses: bool = True
     publications: List[PublicationDefination]
 
 
