@@ -68,7 +68,7 @@ class Profile:
                 # if self.dtype == "Machine":
                 #     value_f["realar1"] = value_f["realar1"]
                 self.solver.update_object(self.dtype, bus, object_id, value_f)
-                # logger.debug(f"Object updated: {object_id}.{bus}.{self.dtype}={value_f}")
+                logger.info(f"Object updated: {object_id}.{bus}.{self.dtype}={value_f}")
         return value
 
     def fill_missing_values(self, value):

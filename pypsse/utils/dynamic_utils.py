@@ -82,7 +82,6 @@ class DynamicUtils:
                                 logger.info(f"IBR added: {bus_id}_{machine} (pg={machine_pg},qg={machine_qg},base={machine_base})")
                                 ibr_dt = self.settings.simulation.simulation_step_resolution.total_seconds()
                                 self.der.add_ibr([bus_id],[pg],[qg],[ibr_id],ibr_dt)
-                                # logger.info("##################### add channel #########################")
                                 # self.update_loadchannel_asset_list("loads", [ibr_id, f"{bus_id}"])
                 else:
                     # TODO

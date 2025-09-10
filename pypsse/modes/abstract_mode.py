@@ -1269,7 +1269,7 @@ class AbstractMode:
             elif dtype == WritableModelTypes.MACHINE.value:
                 ierr = self.psse.machine_data_2(i=int(bus), id=element_id, **values)
             elif dtype == WritableModelTypes.PLANT.value:
-                ierr = self.psse.plant_data_4(ibus=int(bus), inode=element_id, **values)
+                ierr = self.psse.plant_data_4(ibus=int(bus), inode=0, intgar=[self._i, self._i], **values)
             else:
                 ierr = 1
 
@@ -1277,7 +1277,7 @@ class AbstractMode:
                 # logger.info(f"Profile Manager: {dtype} '{element_id}' on bus '{bus}' has been updated. {values}")
                 pass
             else:
-                logger.error(f"Profile Manager: Error updating {dtype} '{element_id}' on bus '{bus}'.")
+                logger.error(f"Profile Manager: Error updating {dtype} '{element_id}' on bus '{bus}'. Error code is {ierr}")
 
     def has_converged(self):
         return self.psse.solved()
