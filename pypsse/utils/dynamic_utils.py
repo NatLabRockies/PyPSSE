@@ -7,6 +7,8 @@ from loguru import logger
 from pypsse.common import MACHINE_CHANNELS
 from pypsse.modes.constants import dyn_only_options
 import re
+import toml
+from pypsse.models import REGCA1_data_model, REECA1_data_model, REPCA1_data_model
 
 class DynamicUtils:
     "Utility functions for dynamic simulations"
@@ -16,7 +18,7 @@ class DynamicUtils:
     def disable_generation_for_coupled_buses(self):
         """Disables generation of coupled buses (co-simulation mode only)"""
         if ((self.settings.helics and self.settings.helics.cosimulation_mode and self.settings.simulation.disable_generation_on_coupled_buses) # cosim mode, load in distribution level
-            or (self.settings.simulation.disable_generation_on_coupled_buses and self.settings.simulation.generation_model_level.lower() == "transmission" and self.settings.simulation.generation_std.lower() == "ieee2800")): 
+            or (self.settings.simulation.disable_generation_on_coupled_buses and self.settings.simulation.generation_model_level.lower() == "transmission")): 
             sub_data = pd.read_csv(self.settings.simulation.subscriptions_file)
             sub_data = sub_data[sub_data["element_type"] == "Load"]
             generators = {}
@@ -54,40 +56,72 @@ class DynamicUtils:
                         self._f,
                         self._f,
                     ]
-                    ierr, machine_pg = self.psse.macdat(bus_id,machine,'P')
-                    ierr, machine_qg = self.psse.macdat(bus_id,machine,'Q')
-                    ierr, machine_base = self.psse.macdat(bus_id,machine,'MBASE')
-                    if ierr == 0:
-                        generator_data[f"{bus_id}_{machine}"] = {
-                            "pg": machine_pg,
-                            "qg": machine_qg,
-                            "base": machine_base
-                        }
                     self.psse.machine_chng_2(bus_id, machine, intgar, realar)
-                    logger.info(f"Machine disabled: {bus_id}_{machine} (pg={machine_pg},qg={machine_qg},base={machine_base})")
+                    logger.info(f"Machine disabled: {bus_id}_{machine}")
             
-            if self.settings.simulation.generation_model_level.lower() == "transmission":
-                # generation is still in transmission level but use different modeling method
-                if self.settings.simulation.generation_std.lower() == "ieee2800":
-                    logger.debug(f"Added IBR with IEEE STD 2800")
-                    for bus_id, machines in generators.items():
-                        for machine in machines:
-                            machine_id = f"{bus_id}_{machine}"
-                            if machine_id in generator_data.keys():
-                                ibr_data = generator_data[f"{bus_id}_{machine}"]
-                                pg = ibr_data["pg"]
-                                qg = ibr_data["qg"]
-                                base = ibr_data["base"]
-                                ibr_id = f"ir"
-                                logger.info(f"IBR added: {bus_id}_{machine} (pg={machine_pg},qg={machine_qg},base={machine_base})")
-                                ibr_dt = self.settings.simulation.simulation_step_resolution.total_seconds()
-                                self.der.add_ibr([bus_id],[pg],[qg],[ibr_id],ibr_dt)
-                                # self.update_loadchannel_asset_list("loads", [ibr_id, f"{bus_id}"])
-                else:
-                    # TODO
-                 raise Exception("STD has not been implemented")
-
-            # os.system("PAUSE")
+            logger.info(f"generator_data: {generator_data})")
+            logger.info(f"generators: {generators})")
+            if self.settings.simulation.generation_model_level.lower() == "transmission" and len(self.settings.simulation.transmission_ibrs) > 0:
+                intgar = [0, self._i, self._i, self._i, self._i, self._i]
+                realar = [
+                    self._f,
+                    self._f,
+                    self._f,
+                    self._f,
+                    self._f,
+                    self._f,
+                    self._f,
+                    self._f,
+                    self._f,
+                    self._f,
+                    self._f,
+                    self._f,
+                    self._f,
+                    self._f,
+                    self._f,
+                    self._f,
+                    self._f,
+                ]
+                transmission_ibrs_id = self.settings.simulation.transmission_ibrs
+                transmission_ibrs_std = self.settings.simulation.transmission_ibrs_std
+                assert len(transmission_ibrs_id)==len(transmission_ibrs_std), f"Input dimension mismatch"
+                # added by FX for IBR temporarily
+                ibr_setting_path = r"C:\Users\FXIE\Documents\GitHub\NEARM_TnD\dynamic_cosim_test_cases-model\WECC\Transmission\pypsse_model\Scenarios\IEEE2800\IBR.toml"
+                ibr_settings = toml.load(ibr_setting_path)
+                for ibr, std in zip(transmission_ibrs_id, transmission_ibrs_std):
+                    # generation is still in transmission level but use different modeling method
+                    if std.lower() == "ieee2800":
+                        logger.debug(f"Added IBR with IEEE STD 2800 for generator {ibr}")
+                        bus_id, machine = ibr.split("_")
+                        ierr, machine_pg = self.psse.macdat(int(bus_id),machine,'P')
+                        ierr, machine_qg = self.psse.macdat(int(bus_id),machine,'Q')
+                        ierr, machine_base = self.psse.macdat(int(bus_id),machine,'MBASE')
+                        ierr, machine_status = self.psse.macint(int(bus_id),machine,'STATUS')
+                        if ibr in ibr_settings.keys():
+                            ibr_setting = ibr_settings[ibr]
+                            logger.debug(f"REPCA1: {ibr_setting['REPCA1']}")
+                            param_repca1 = REPCA1_data_model(**ibr_setting["REPCA1"])
+                            param_reeca1 = REECA1_data_model(**ibr_setting["REECA1"])
+                            param_regca1 = REGCA1_data_model(**ibr_setting["REGCA1"])
+                        else:
+                            param_repca1 = None
+                            param_reeca1 = None
+                            param_regca1 = None
+                        if ierr == 0 and machine_status == 1:
+                            self.psse.machine_chng_2(int(bus_id), machine, intgar, realar)
+                            ibr_id = f"ir"
+                            logger.info(f"IBR added: {bus_id}_{machine} (pg={machine_pg},qg={machine_qg},base={machine_base})")
+                            ibr_dt = self.settings.simulation.simulation_step_resolution.total_seconds()
+                            self.der.add_ibr([int(bus_id)],[machine_pg],[machine_qg],[ibr_id],ibr_dt,param_repca1,param_reeca1,param_regca1)
+                        else:
+                            logger.warning(f"Can't add IBR: {bus_id}_{machine})")
+                    else:
+                        # todo
+                        raise Exception("Standard has not been implemented")
+                logger.debug(f"self.der.ibr['model']: {self.der.ibr['model']}")
+        
+        # 
+        # os.system("PAUSE")
 
     def update_loadchannel_asset_list(self,assset_type, asset):
         for n in range(len(self.export_settings.channel_setup)):

@@ -343,7 +343,8 @@ class Simulator(DynamicUtils):
                 if t >= total_simulation_time:
                     break
 
-            self.psse.pssehalt_2()
+            ierr = self.psse.pssehalt_2()
+            assert ierr == 0, f"pssehalt_2 error code: {ierr}"
             if not self.export_settings.export_results_using_channels:
                 self.results.export_results()
             else:

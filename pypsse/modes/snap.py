@@ -52,17 +52,19 @@ class Snap(AbstractMode, DynamicUtils):
         outx_file[-1] = self.export_settings.filename_prefix + "_" + outx_file[-1]
         outx_file = "\\".join(outx_file)
         
+        self.load_user_defined_models()
         ierr = self.psse.strt_2([0, 1],  outx_file)
 
         if ierr == 1:
             self.psse.cong(0)
             ierr = self.psse.strt_2([0, 1],  outx_file)
+            assert ierr==0, f"error of strt_2 wwith code {ierr}"
 
         elif ierr > 1:
             msg = "Error starting simulation"
             raise Exception(msg)
 
-        self.load_user_defined_models()
+        # self.load_user_defined_models()
 
         if self.settings.helics and self.settings.helics.cosimulation_mode:
             if self.settings.helics.iterative_mode:
@@ -91,7 +93,9 @@ class Snap(AbstractMode, DynamicUtils):
         logger.debug(f"snap.py step : {t}")
         self.time = self.time + self.incTime
         self.xTime = 0
-        self.der.update_ibr()
+        if self.settings.simulation.disable_generation_on_coupled_buses and self.settings.simulation.generation_model_level.lower() == "transmission" and len(self.settings.simulation.transmission_ibrs) > 0:
+            # iff transmission DER model is disable and ibr is defined
+            self.der.update_ibr()
         return self.psse.run(0, t + self.incTime.total_seconds(), 1, 1, 1)
 
     def resolve_step(self, t):

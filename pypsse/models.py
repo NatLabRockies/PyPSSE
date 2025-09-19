@@ -58,7 +58,8 @@ class SimSettings(BaseModel):
     simulation_mode: SimulationModes
     disable_generation_on_coupled_buses: bool = True
     generation_model_level: GenerationLevel
-    generation_std: str = "psse"
+    transmission_ibrs: List[str] = []
+    transmission_ibrs_std: List[str] = []
 
     @model_validator(mode="after")
     def sim_res_smaller_than_sim_time(self):
@@ -486,3 +487,81 @@ class ApiWebSocketRequest(BaseModel):
 
 class Contingencies(BaseModel):
     contingencies: List[Union[BusFault, BusTrip, LineFault, LineTrip, MachineTrip]]
+
+
+class REGCA1_data_model(BaseModel):
+	iqmax: float=1
+	iqmin: float=-1
+	Tg: float=0.02
+	xf: float=0.25
+
+
+class REECA1_data_model(BaseModel):
+	ppriorityflag:bool=False
+	Trv:float=0.02
+	dbd1:float=-0.02
+	dbd2:float=0.02
+	Kqv:float=1.0
+	iqh1:float=1.2
+	iql1:float=-1.2
+	Vref:float=1.0
+	Tiq:float=0.02
+	dpmin:float=-1.2
+	dpmax:float=1.2
+	Pmax:float=2
+	Pmin:float=0
+	imax:float=1.2
+	Tpord:float=0.02
+	ipmax:float=1.2
+	ipmin:float=0
+	iqmax:float=1.2
+	iqmin:float=-1.2
+
+class REPCA1_data_model(BaseModel):
+	refflag:int=0
+	fflag:bool=True
+	Tfilt:float=0.02
+	Kp:float=1
+	Ki:float=1
+	Tft:float=0.02
+	Tfv:float=0.05
+	emax:float=2
+	emin:float=-2
+	dbd1:float=-0.02
+	dbd2:float=0.02
+	qmax:float=2
+	qmin:float=-2
+	Kpg:float=1
+	Kig:float=1
+	fdbd1:float=-0.02
+	fdbd2:float=0.02
+	femax:float=1.2
+	femin:float=0
+	pmax:float=2
+	pmin:float=0
+	Tg:float=0.02
+
+
+
+class FastDER_data_model(BaseModel):
+	Trv:float=0.02
+	dbd1:float=-0.025
+	dbd2:float=0.025
+	Kqv:float=0.02
+	Tiq:float=0.02
+	Kpg:float=1.0
+	Kig:float=1.0
+	fdbd1:float=-0.03
+	fdbd2:float=0.03
+	Trf:float=0.02
+	Tpord:float=0.02
+	Tg:float=0.02
+	iqmax:float=2.0
+	iqmin:float=-2.0
+	ipmax:float=2.0
+	ipmin:float=-2.0
+	femax:float=0.2
+	femin:float=-0.2
+	imax:float=2.0
+	ppriorityflag:bool=True
+	xf: float=0.25
