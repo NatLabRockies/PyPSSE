@@ -50,10 +50,12 @@ class Profile:
             dt2 = (
                 self.time - (self.stime + datetime.timedelta(seconds=int(n * self.attrs["resTime"])))
             ).total_seconds()
-            value1 = value + (valuen1 - value) * dt2 / self.attrs["resTime"]
 
         if update_object_properties:
             for obj_name in self.value_settings:
+                if self.value_settings[obj_name]["interpolate"]:
+                    value1 = value + (valuen1 - value) * dt2 / self.attrs["resTime"]
+                # logger.info(f"obj_name: {obj_name}")
                 bus, object_id = obj_name.split("__")
                 if self.value_settings[obj_name]["interpolate"]:
                     value = value1
@@ -63,7 +65,9 @@ class Profile:
                 if self.value_settings[obj_name]["normalize"]:
                     value_f = value / self.attrs["max"] * mult
                 else:
+                    logger.info(f"value: {value}")
                     value_f = value * mult
+                    logger.info(f"value_f: {value_f}")
                 value_f = self.fill_missing_values(value_f)
                 # if self.dtype == "Machine":
                 #     value_f["realar1"] = value_f["realar1"]
@@ -73,6 +77,9 @@ class Profile:
 
     def fill_missing_values(self, value):
         "Fixes issues in profile data"
-        idx = [f"realar{PROFILE_VALIDATION[self.dtype].index(c) + 1}" for c in self.columns]
+        if self.dtype in ["Load","Induction_machine","Machine","Plant"]:
+            idx = [f"realar{PROFILE_VALIDATION[self.dtype].index(c) + 1}" for c in self.columns]
+        else:
+            idx = [f"intgar{PROFILE_VALIDATION[self.dtype].index(c) + 1}" for c in self.columns]
         x = dict(zip(idx, list(value)))
         return x

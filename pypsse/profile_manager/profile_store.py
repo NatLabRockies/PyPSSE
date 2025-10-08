@@ -80,6 +80,7 @@ class ProfileManager:
                             self.profiles[f"{group}/{profile_name}"] = Profile(
                                 grp[profile_name], self.solver, mapping_dict
                             )
+                            logger.info(rf"Group {group} \ data set {profile_name} is added")
                         else:
                             logger.warning(rf"Group {group} \ data set {profile_name} not found in the h5 store")
                 else:

@@ -1258,16 +1258,29 @@ class AbstractMode:
     def update_object(self, dtype, bus, element_id, values: dict):
         val = sum(list(values.values()))
         if val > -VALUE_UPDATE_BOUND and val < VALUE_UPDATE_BOUND:
-            if dtype == WritableModelTypes.LOAD.value:
+            if dtype == WritableModelTypes.LOAD.value or dtype == WritableModelTypes.LOAD_STATUS.value:
+            #     ierr = self.psse.load_chng_5(ibus=int(bus), id=element_id, **values)
+            # elif dtype == WritableModelTypes.LOAD_STATUS.value:
+                old_load = self.psse.lodint(ibus=int(bus), id=element_id, string='STATUS')
+                logger.info(f"old load {bus}-{element_id}: {old_load}")
+                old_load = self.psse.loddt2(ibus=int(bus), id=element_id, string1='MVA', string2='ACT')
+                logger.info(f"old load MVA {bus}-{element_id}: {old_load}")
                 ierr = self.psse.load_chng_5(ibus=int(bus), id=element_id, **values)
-                # ierr, cmpval = self.psse.loddt2(int(bus),element_id,'MVA','ACT')
-                # if ierr == 0:
-                #     logger.info(f"recheck load value: {cmpval}")
-                #     os.system("PAUSE")
+                old_load = self.psse.lodint(ibus=int(bus), id=element_id, string='STATUS')
+                logger.info(f"new load {bus}-{element_id}: {old_load}")
+                old_load = self.psse.loddt2(ibus=int(bus), id=element_id, string1='MVA', string2='ACT')
+                logger.info(f"old load MVA {bus}-{element_id}: {old_load}")
             elif dtype == WritableModelTypes.GENERATOR.value:
                 ierr = self.psse.induction_machine_data(ibus=int(bus), id=element_id, **values)
-            elif dtype == WritableModelTypes.MACHINE.value:
+            elif dtype == WritableModelTypes.MACHINE.value or dtype == WritableModelTypes.MACHINE_STATUS.value:
                 ierr = self.psse.machine_data_2(i=int(bus), id=element_id, **values)
+            elif dtype == WritableModelTypes.LINE_STATUS.value:
+                frombus, tobus = bus.split("_")
+                old_load = self.psse.brnint(ibus=int(frombus), jbus=int(tobus), ickt=element_id, string='STATUS')
+                logger.info(f"old line status {bus}-{element_id}: {old_load}")
+                ierr = self.psse.branch_data_3(ibus=int(frombus), jbus=int(tobus), ckt=element_id, **values)
+                old_load = self.psse.brnint(ibus=int(frombus), jbus=int(tobus), ickt=element_id, string='STATUS')
+                logger.info(f"new line status {bus}-{element_id}: {old_load}")
             elif dtype == WritableModelTypes.PLANT.value:
                 ierr = self.psse.plant_data_4(ibus=int(bus), inode=0, intgar=[self._i, self._i], **values)
             else:

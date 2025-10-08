@@ -44,6 +44,9 @@ class WritableModelTypes(str, Enum):
     PLANT = "Plant"
     MACHINE = "Machine"
     GENERATOR = "Induction_machine"
+    LOAD_STATUS = "Load_status"
+    LINE_STATUS = "Line_status"
+    MACHINE_STATUS = "Machine_status"
 
 
 class ModelTypes(str, Enum):
