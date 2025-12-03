@@ -35,6 +35,7 @@ class Profile:
     def update(self, update_object_properties=True):
         "Returns value at the current timestep in the given profile"
         self.time = copy.deepcopy(self.solver.get_time()).astimezone(None)
+        logger.info(f"self.profile: {self.profile}")
         if self.time < self.stime or self.time > self.etime:
             value = np.array([0] * len(self.profile[0]))
             value1 = np.array([0] * len(self.profile[0]))
@@ -46,7 +47,6 @@ class Profile:
                 valuen1 = np.array(list(self.profile[n + 1]))
             except Exception as _:
                 valuen1 = value
-
             dt2 = (
                 self.time - (self.stime + datetime.timedelta(seconds=int(n * self.attrs["resTime"])))
             ).total_seconds()
@@ -55,7 +55,6 @@ class Profile:
             for obj_name in self.value_settings:
                 if self.value_settings[obj_name]["interpolate"]:
                     value1 = value + (valuen1 - value) * dt2 / self.attrs["resTime"]
-                # logger.info(f"obj_name: {obj_name}")
                 bus, object_id = obj_name.split("__")
                 if self.value_settings[obj_name]["interpolate"]:
                     value = value1
@@ -65,18 +64,16 @@ class Profile:
                 if self.value_settings[obj_name]["normalize"]:
                     value_f = value / self.attrs["max"] * mult
                 else:
-                    logger.info(f"value: {value}")
                     value_f = value * mult
-                    logger.info(f"value_f: {value_f}")
                 value_f = self.fill_missing_values(value_f)
-                # if self.dtype == "Machine":
-                #     value_f["realar1"] = value_f["realar1"]
                 self.solver.update_object(self.dtype, bus, object_id, value_f)
-                logger.info(f"Object updated: {object_id}.{bus}.{self.dtype}={value_f}")
+                logger.debug(f"Object updated: {object_id}.{bus}.{self.dtype}={value_f}")
         return value
 
     def fill_missing_values(self, value):
         "Fixes issues in profile data"
+        # idx = [f"realar{PROFILE_VALIDATION[self.dtype].index(c) + 1}" for c in self.columns]
+        ## FX: added to handle more data
         if self.dtype in ["Load","Induction_machine","Machine","Plant"]:
             idx = [f"realar{PROFILE_VALIDATION[self.dtype].index(c) + 1}" for c in self.columns]
         else:

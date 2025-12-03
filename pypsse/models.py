@@ -58,8 +58,11 @@ class SimSettings(BaseModel):
     simulation_mode: SimulationModes
     disable_generation_on_coupled_buses: bool = True
     generation_model_level: GenerationLevel
-    transmission_ibrs: List[str] = []
-    transmission_ibrs_std: List[str] = []
+    generation_std: str = "ieee2800"
+    transmission_ids: List[int]
+    transmission_loads_at_fault: List
+    transmission_loads_clear_fault: List
+    transmission_loads_markup: bool = False
 
     @model_validator(mode="after")
     def sim_res_smaller_than_sim_time(self):
@@ -178,6 +181,7 @@ class HelicsSettings(BaseModel):
     max_coiterations: int = Field(15, ge=1)
     broker_ip: IPvAnyAddress = "127.0.0.1"
     broker_port: int = 23404
+    generation_model_level: str = "distribution"
     publications: List[PublicationDefination]
 
 
@@ -570,3 +574,10 @@ class FastDER_data_model(BaseModel):
 	imax:float=2.0
 	ppriorityflag:bool=True
 	xf: float=0.25
+
+class ProfileMap(BaseModel):
+     id: str 
+     bus: str
+     multiplier : float  = 1
+     normalize : bool = False
+     interpolate : bool = False

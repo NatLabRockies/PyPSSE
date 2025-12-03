@@ -40,7 +40,7 @@ class ProfileManager:
         file_path = settings.simulation.project_path / PROFILES_FOLDER / DEFAULT_PROFILE_STORE_FILENAME
 
         if file_path.exists():
-            logger.info("Loading existing h5 store")
+            logger.info(f"Loading existing h5 store: {file_path}")
             self.store = h5py.File(file_path, mode)
         else:
             logger.info("Creating new h5 store")
@@ -267,6 +267,7 @@ class ProfileManager:
             info (str): profile info
             p_type (ProfileTypes): profile type
         """
+        # logger.debug(start_time.strftime())
 
         metadata = {
             "sTime": str(start_time),
@@ -295,10 +296,11 @@ class ProfileManager:
         """
 
         results = {}
+        # logger.info(self.profiles)
         for profile_name, profile_obj in self.profiles.items():
             result = profile_obj.update()
             results[profile_name] = result
-            
+        # logger.info(results)
         return results
 
     # def __del__(self):

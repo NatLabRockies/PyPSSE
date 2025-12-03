@@ -46,25 +46,22 @@ class Snap(AbstractMode, DynamicUtils):
         # # The following logic only runs when the helics interface is enabled
         self.disable_load_models_for_coupled_buses()
         self.disable_generation_for_coupled_buses()
-        # self.save_model()
         ############# ------------------------------------- ###############
         outx_file  = str(self.settings.export.outx_file).split("\\")
         outx_file[-1] = self.export_settings.filename_prefix + "_" + outx_file[-1]
         outx_file = "\\".join(outx_file)
         
-        self.load_user_defined_models()
         ierr = self.psse.strt_2([0, 1],  outx_file)
 
         if ierr == 1:
             self.psse.cong(0)
             ierr = self.psse.strt_2([0, 1],  outx_file)
-            assert ierr==0, f"error of strt_2 wwith code {ierr}"
 
         elif ierr > 1:
             msg = "Error starting simulation"
             raise Exception(msg)
 
-        # self.load_user_defined_models()
+        self.load_user_defined_models()
 
         if self.settings.helics and self.settings.helics.cosimulation_mode:
             if self.settings.helics.iterative_mode:
@@ -90,11 +87,10 @@ class Snap(AbstractMode, DynamicUtils):
 
     def step(self, t):
         "Increments the simulation"
-        logger.debug(f"snap.py step : {t}")
         self.time = self.time + self.incTime
         self.xTime = 0
         if self.settings.simulation.disable_generation_on_coupled_buses and self.settings.simulation.generation_model_level.lower() == "transmission" and len(self.settings.simulation.transmission_ibrs) > 0:
-            # iff transmission DER model is disable and ibr is defined
+            # FX: if transmission DER model is disable and ibr is defined
             self.der.update_ibr()
         return self.psse.run(0, t + self.incTime.total_seconds(), 1, 1, 1)
 
@@ -142,20 +138,12 @@ class Snap(AbstractMode, DynamicUtils):
             ext_string2_info = {}
         if mapping_dict is None:
             mapping_dict = {}
-        
         results = super().read_subsystems(
             quantities, subsystem_buses, mapping_dict=mapping_dict, ext_string2_info=ext_string2_info
         )
-        # logger.debug(f"snap.py results : {results}")
-        # logger.debug(f"quantities : {quantities}")
-        # logger.debug(f"subsystem_buses : {subsystem_buses}")
-        # logger.debug(f"mapping_dict : {mapping_dict}")
-        # logger.debug(f"ext_string2_info : {ext_string2_info}")
-        # raise Exception(1)
+
         poll_results = self.poll_channels()
         results.update(poll_results)
-        # logger.debug(f"snap.py updated results : {results}")
-        # os.system("PAUSE")
         """ Add """
         for class_name, var_list in quantities.items():
             if class_name in dyn_only_options:

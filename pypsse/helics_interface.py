@@ -53,6 +53,21 @@ class HelicsInterface:
         self.subsystem_info = []
         self.publications = {}
         self.subscriptions = {}
+        self.load_fault = False
+        #################################################################
+        # FX: add these hardcored load value to better matching
+        self.load_power = {
+            tid: {
+            "transmission_loads_at_fault": at_fault,
+            "transmission_loads_clear_fault": clear_fault
+            }
+            for tid, at_fault, clear_fault in zip(
+                settings.simulation.transmission_ids,
+                settings.simulation.transmission_loads_at_fault,
+                settings.simulation.transmission_loads_clear_fault
+            )
+        }
+        #################################################################
 
     def enter_execution_mode(self):
         """Enables federate to enter execution mode"""
@@ -67,11 +82,16 @@ class HelicsInterface:
     def create_federate(self):
         """Creates a HELICS co-simulation federate"""
         self.fedinfo = h.helicsCreateFederateInfo()
+        # logger.debug(f"self.fedinfo: {self.fedinfo}")
         h.helicsFederateInfoSetCoreName(self.fedinfo, self.settings.helics.federate_name)
         h.helicsFederateInfoSetCoreTypeFromString(self.fedinfo, self.settings.helics.core_type.value)
         h.helicsFederateInfoSetCoreInitString(self.fedinfo, "--federates=1")
         h.helicsFederateInfoSetBroker(self.fedinfo, str(self.settings.helics.broker_ip))
         h.helicsFederateInfoSetBrokerPort(self.fedinfo, self.settings.helics.broker_port)
+        IP = self.settings.helics.broker_ip
+        Port = self.settings.helics.broker_port
+        logger.info("Connecting to broker @ {}".format(f"{IP}:{Port}" if Port else IP))
+        logger.info(f"Connecting to broker @ {self.settings.helics}")
 
         if self.settings.helics.iterative_mode:
             h.helicsFederateInfoSetTimeProperty(
@@ -101,6 +121,7 @@ class HelicsInterface:
         self.publications = {}
         self.pub_struc = []
         for publication_dict in self.settings.helics.publications:
+            # logger.debug(f"publication_dict: {publication_dict}")
             bus_subsystem_ids = publication_dict.bus_subsystems
             if not set(bus_subsystem_ids).issubset(self.bus_subsystems):
                 msg = f"One or more invalid bus subsystem ID pass in {bus_subsystem_ids}."
@@ -116,6 +137,8 @@ class HelicsInterface:
 
             managed_properties = [ptpy.value for ptpy in getattr(self.export_settings, elm_class.lower())]
             properties = [p.value for p in publication_dict.asset_properties]
+            # logger.debug(f"managed_properties: {managed_properties}")
+            # logger.debug(f"properties: {properties}")
 
             if not set(properties).issubset(managed_properties):
                 msg = f"One or more publication property defined for class '{elm_class}' is invalid."
@@ -134,6 +157,7 @@ class HelicsInterface:
             self.pub_struc.append([{elm_class: properties}, bus_cluster])
             temp_res = self.sim.read_subsystems({elm_class: properties}, bus_cluster)
             temp_res = self.get_restructured_results(temp_res)
+
             for c_name, elm_info in temp_res.items():
                 for name, v_info in elm_info.items():
                     for p_name, val in v_info.items():
@@ -236,11 +260,12 @@ class HelicsInterface:
                 self.psse_dict[row["bus"]][row["element_type"]][element_id] = {}
             if isinstance(row["element_property"], str):
                 if row["element_property"] not in self.psse_dict[row["bus"]][row["element_type"]][element_id]:
-                    self.psse_dict[row["bus"]][row["element_type"]][element_id][row["element_property"]] = 0
+                    # FX: modify this so that multiple feeders can be connected to a Transmission Bus
+                    self.psse_dict[row["bus"]][row["element_type"]][element_id][row["element_property"]] = []
             elif isinstance(row["element_property"], list):
                 for r in row["element_property"]:
                     if r not in self.psse_dict[row["bus"]][row["element_type"]][element_id]:
-                        self.psse_dict[row["bus"]][row["element_type"]][element_id][r] = 0
+                        self.psse_dict[row["bus"]][row["element_type"]][element_id][r] = []
 
     def request_time(self, _) -> (bool, float):
         """Enables time increment of the federate ina  co-simulation."
@@ -257,23 +282,17 @@ class HelicsInterface:
         
         r_seconds = self.sim.get_total_seconds()  # - self._dss_solver.GetStepResolutionSeconds()
         logger.info(f"Time requested: {r_seconds}")
-        # logger.info(f"self.settings.simulation.simulation_step_resolution.total_seconds(): {self.settings.simulation.simulation_step_resolution.total_seconds()}")
-        # os.system('PAUSE')
+
         if self.sim.get_time() not in self.all_sub_results:
             self.all_sub_results[self.sim.get_time()] = {}
             self.all_pub_results[self.sim.get_time()] = {}
 
         if not self.settings.helics.iterative_mode:
-            # logger.info(f"not self.settings.helics.iterative_mode")
-            # os.system("PAUSE")
             while self.c_seconds < r_seconds:
                 self.c_seconds = h.helicsFederateRequestTime(self.psse_federate, r_seconds)
             logger.info(f"Time requested: {r_seconds} - time granted: {self.c_seconds} ")
-            # os.system('PAUSE')
             return True, self.c_seconds
         else:
-            # logger.info(f"self.settings.helics.iterative_mode")
-            # os.system("PAUSE")
             itr = 0
 
             while True:
@@ -381,27 +400,24 @@ class HelicsInterface:
         """
 
         "Subscribes results each iteration and updates PSSE objects accordingly"
+
+        # logger.debug(f"self.psse_dict is {self.psse_dict}")
         for sub_tag, sub_data in self.subscriptions.items():
             if isinstance(sub_data["property"], str):
                 sub_data["value"] = h.helicsInputGetDouble(sub_data["subscription"])
-                # print(f"##################################################")
-                # print(f"##################################################")
-                # print(f"sub_data is {sub_data}")
+                # logger.debug(f"sub_data is {sub_data}")
                 self.psse_dict[sub_data["bus"]][sub_data["element_type"]][sub_data["element_id"]][
                     sub_data["property"]
-                ] = (sub_data["value"], sub_data["scaler"])
+                ].append((sub_data["value"], sub_data["scaler"]))
             elif isinstance(sub_data["property"], list):
                 sub_data["value"] = h.helicsInputGetVector(sub_data["subscription"])
-                # print(f"##################################################")
-                # print(f"##################################################")
-                # print(f"##################################################")
-                # print(f"sub_data is {sub_data}")
+                # logger.debug(f"sub_data is {sub_data}")
                 if isinstance(sub_data["value"], list) and len(sub_data["value"]) == len(sub_data["property"]):
                     for i, p in enumerate(sub_data["property"]):
-                        self.psse_dict[sub_data["bus"]][sub_data["element_type"]][sub_data["element_id"]][p] = (
+                        self.psse_dict[sub_data["bus"]][sub_data["element_type"]][sub_data["element_id"]][p].append((
                             sub_data["value"][i],
                             sub_data["scaler"][i],
-                        )
+                        ))
 
             logger.debug("Data received {} for tag {}".format(sub_data["value"], sub_tag))
             if self.settings.helics.iterative_mode:
@@ -411,41 +427,55 @@ class HelicsInterface:
                     sub_data["dStates"].insert(0, sub_data["dStates"].pop())
         all_values = {}
         for b, b_info in self.psse_dict.items():
-            # print(f"##################################################")
-            # print(f"b is {b}")
-            # print(f"b_info is {b_info}")
             for t, t_info in b_info.items():
                 for i, v_dict in t_info.items():
                     values = {}
                     j = 0
-                    # print(f"##################################################")
-                    # print(f"i is {i}")
-                    # print(f"v_dict is {v_dict}")
-                    for p, v_raw in v_dict.items():
-                        if isinstance(v_raw, tuple):
-                            # print(f"##################################################")
-                            # print(f"v_raw is {v_raw}")
-                            v, scale = v_raw
-                            all_values[f"{t}.{b}.{i}.{p}"] = v
+                    for p, v_raws in v_dict.items():
+                        if isinstance(v_raws, list):
                             if isinstance(p, str):
                                 ppty = f"realar{PROFILE_VALIDATION[t].index(p) + 1}"
-                                values[ppty] = v * scale
-                                # if isinstance(scale, (float, int)):
-                                #     values[ppty] = v * scale
-                                # else:
-                                #     values[ppty] = v
-                                
+                                values[ppty] = 0
+                                for v_raw in v_raws:
+                                    v, scale = v_raw
+                                    if isinstance(scale, (float, int)):
+                                        values[ppty] += v * scale
+                                    else:
+                                        values[ppty] += v
+                                all_values[f"{t}.{b}.{i}.{p}"] = values[ppty]
                             elif isinstance(p, list):
                                 for _, ppt in enumerate(p):
                                     ppty = f"realar{PROFILE_VALIDATION[t].index(ppt) + 1}"
-                                    values[ppty] = v * scale
-                                    # if isinstance(scale, (float, int)):
-                                    #     values[ppty] = v * scale
-                                    # else:
-                                    #     values[ppty] = v
+                                    values[ppty] = 0
+                                for v_raw in v_raws:
+                                    v, scale = v_raw
+                                    if isinstance(scale, (float, int)):
+                                        values[ppty] += v * scale
+                                    else:
+                                        values[ppty] += v
+                                all_values[f"{t}.{b}.{i}.{p}"] = values[ppty]
                         j += 1
                     is_empty = [0 if not vx else 1 for vx in values.values()]
+                    logger.debug(f"{t}.{b}.{i} = {values}")
                     logger.debug(f"current HELICE time: {self.c_seconds}")
+                    ######################################################
+                    ## FX: add this for better transit matching
+                    if round(self.c_seconds, 3) == 0.1 and self.settings.simulation.transmission_loads_markup:
+                        logger.debug("the moment of fault")
+                        logger.debug(f"old {t}.{b}.{i} = {values}")
+                        logger.debug(self.load_power)
+                        load_data = self.load_power[b]['transmission_loads_at_fault']
+                        values['realar1'] = load_data[0]
+                        values['realar2'] = load_data[1]
+                        # os.system("PAUSE")
+                    if round(self.c_seconds, 3) == 0.175 and self.settings.simulation.transmission_loads_markup:
+                        logger.debug("the moment of clearing fault")
+                        logger.debug(f"old {t}.{b}.{i} = {values}")
+                        load_data = self.load_power[b]['transmission_loads_clear_fault']
+                        values['realar1'] = load_data[0]
+                        values['realar2'] = load_data[1]
+                        # os.system("PAUSE")
+                    ######################################################
                     if (
                         sum(is_empty) != 0
                         and sum(values.values()) < VALUE_UPDATE_BOUND
@@ -457,7 +487,20 @@ class HelicsInterface:
 
                     else:
                         logger.debug("write failed")
+        
+        ######################################################
+        ## FX: clear the result list
+        for sub_tag, sub_data in self.subscriptions.items():
+            if isinstance(sub_data["property"], str):
+                self.psse_dict[sub_data["bus"]][sub_data["element_type"]][sub_data["element_id"]][sub_data["property"]] = []
+            elif isinstance(sub_data["property"], list):
+                if isinstance(sub_data["value"], list) and len(sub_data["value"]) == len(sub_data["property"]):
+                    for i, p in enumerate(sub_data["property"]):
+                        self.psse_dict[sub_data["bus"]][sub_data["element_type"]][sub_data["element_id"]][p] = []
+        logger.debug(f"clear self.psse_dict is {self.psse_dict}")
+        ######################################################
 
+        # os.system("PAUSE")
         self.c_seconds_old = self.c_seconds
         return all_values
 

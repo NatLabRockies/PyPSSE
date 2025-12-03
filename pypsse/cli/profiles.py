@@ -38,6 +38,6 @@ def get_profiles(project_path, simulations_file=None):
     if simulation_settings.log.log_to_external_file:
         log_path = Path(project_path) / "Logs" / "pypsse.log"
         logger.add(log_path)
-    logger.info(f"file_path: {file_path}")
+    
     profile_interface = ProfileManagerInterface.from_setting_files(file_path)
     profile_interface.get_profiles()

@@ -97,7 +97,7 @@ class Simulator(DynamicUtils):
             )
             assert (
                 export_settings_path.exists()
-            ), f"{export_settings_path} does nor exist"
+            ), f"{export_settings_path} does not exist"
             export_settings = toml.load(export_settings_path)
             export_settings = ExportFileOptions(**export_settings)
 
@@ -167,10 +167,10 @@ class Simulator(DynamicUtils):
 
         self.hi = None
         self.simStartTime = time.time()
-        
-        if self.settings.simulation.case_study is not None and self.settings.simulation.case_study.exists():
+
+        if self.settings.simulation.case_study and self.settings.simulation.case_study.exists():
             self.psse.case(str(self.settings.simulation.case_study))
-        elif self.settings.simulation.raw_file is not None and self.settings.simulation.raw_file.exists():
+        elif self.settings.simulation.raw_file and self.settings.simulation.raw_file.exists():
             self.psse.read(0, str(self.settings.simulation.raw_file))
         else:
             msg = "Please pass a RAW or SAV file in the settings dictionary"
@@ -343,8 +343,7 @@ class Simulator(DynamicUtils):
                 if t >= total_simulation_time:
                     break
 
-            ierr = self.psse.pssehalt_2()
-            assert ierr == 0, f"pssehalt_2 error code: {ierr}"
+            self.psse.pssehalt_2()
             if not self.export_settings.export_results_using_channels:
                 self.results.export_results()
             else:
@@ -431,7 +430,6 @@ class Simulator(DynamicUtils):
         """
 
         if self.export_settings.defined_subsystems_only:
-            # logger.debug(f"self.exp_vars : {self.exp_vars}")
             curr_results = self.sim.read_subsystems(
                 self.exp_vars, self.all_subsysten_buses
             )
@@ -442,7 +440,6 @@ class Simulator(DynamicUtils):
 
         if not USING_NAERM:
             if not self.export_settings.export_results_using_channels:
-                # logger.debug(f"curr_results : {curr_results}")
                 self.results.update(
                     curr_results,
                     t,
@@ -484,7 +481,7 @@ class Simulator(DynamicUtils):
         Returns:
             dict: simulation results
         """
-        logger.debug(f"self.exp_vars : {self.exp_vars}")
+
         self._status = SimulationStatus.STARTING_RESULT_EXPORT
         self.exp_vars = self.results.update_export_variables(params)
         curr_results = (

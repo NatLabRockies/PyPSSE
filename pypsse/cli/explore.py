@@ -94,24 +94,18 @@ def explore(project_path, simulations_file, export_file_path, load_filter, load,
     msg = "Simulation file not found. Use -s to choose a valid settings file"
     "if its name differs from the default file name."
     assert file_path.exists(), msg
-    # print(1111111111)
     
     simulation_settings = toml.load(file_path)
     simulation_settings = SimulationSettings(**simulation_settings)
     simulation_settings.helics.cosimulation_mode = False
-    # print(2222222222)
     x = Simulator(simulation_settings)
-    # print(3333333333)
     buses = set(x.raw_data.buses)
-    # print(4444444444)
     quantities =  {
         'Loads': ['MVA', "IL", "YL", 'FmA', 'FmB', 'FmC', 'FmD', 'Fel', 'PFel'], 
         'Induction_generators': ['MVA'], 
         'Machines': ['MVA', 'PERCENT'], 
         }
     results = x.sim.read_subsystems(quantities,  buses)
-    # print(55555555555555)
-    # os.system("PAUSE")
 
     # print(results.keys())
     # print(results["LOAD_P"])
@@ -211,7 +205,7 @@ def explore(project_path, simulations_file, export_file_path, load_filter, load,
         results=results[(results["total generation [MVA]"] >= gen_lower) & (results["total generation [MVA]"] <= gen_upper)]
 
     # print(results)    
-    results.to_csv(export_file_path,index=False)
+    results.to_csv(export_file_path)
     logger.info(f"Results exported to {export_file_path.absolute()}")
     
 

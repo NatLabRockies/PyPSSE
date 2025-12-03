@@ -23,7 +23,6 @@ class DynamicUtils:
             sub_data = sub_data[sub_data["element_type"] == "Load"]
             generators = {}
             generator_list = {}
-            generator_data = {}
 
             for gen_bus, gen_id in self.raw_data.generators:
                 if gen_bus not in generator_list:
@@ -59,8 +58,6 @@ class DynamicUtils:
                     self.psse.machine_chng_2(bus_id, machine, intgar, realar)
                     logger.info(f"Machine disabled: {bus_id}_{machine}")
             
-            logger.info(f"generator_data: {generator_data})")
-            logger.info(f"generators: {generators})")
             if self.settings.simulation.generation_model_level.lower() == "transmission" and len(self.settings.simulation.transmission_ibrs) > 0:
                 intgar = [0, self._i, self._i, self._i, self._i, self._i]
                 realar = [
@@ -140,22 +137,23 @@ class DynamicUtils:
         if self.settings.helics and self.settings.helics.cosimulation_mode:
             sub_data = pd.read_csv(self.settings.simulation.subscriptions_file)
             sub_data = sub_data[sub_data["element_type"] == "Load"]
-            logger.info(f"break the load")
-            self.break_loads(None, ['FmD'])
-            # self.psse_dict = {}
-            # for _, row in sub_data.iterrows():
-            #     bus = row["bus"]
-            #     load = row["element_id"]
-            #     ierr = self.psse.ldmod_status(0, int(bus), str(load), 1, 0)
-            #     if ierr == 0:
-            #         logger.info(f"Dynamic model for load {load} connected to bus {bus} has been disabled")
-            #     elif ierr == 5:
-            #         logger.error(f"No dynamic model found for load {load} connected to bus {bus}")
-            #     else:
-            #         raise Exception(f"error={ierr}") 
-                # os.system("PAUSE")
-                
-    def break_loads(self, loads: list = None, components_to_replace: List[str] = []):
+            ### add by Aadil
+            logger.debug("Implementing load brek logic for dynamic cosimulations")
+            self.break_loads_for_dynamic_cosimulations(loads=None, components_to_replace=["FmD"])
+
+            self.psse_dict = {}
+            for _, row in sub_data.iterrows():
+                bus = row["bus"]
+                load = row["element_id"]
+                ierr = self.psse.ldmod_status(0, int(bus), str(load), 1, 0)
+                if ierr == 0:
+                    logger.info(f"Dynamic model for load {load} connected to bus {bus} has been disabled")
+                elif ierr == 5:
+                    logger.error(f"No dynamic model found for load {load} connected to bus {bus}")
+                else:
+                    raise Exception(f"error={ierr}")
+
+    def break_loads_for_dynamic_cosimulations(self, loads: list = None, components_to_replace: List[str] = []):
         """Implements the load split logic
 
         Args:
@@ -163,22 +161,23 @@ class DynamicUtils:
             components_to_replace (List[str], optional): components to be simulated on distribution side. Defaults to [].
         """
         logger.info("##################### break_loads #########################")
-        os.system("PAUSE")
         components_to_stay = [x for x in self.dynamic_params if x not in components_to_replace]
         logger.info(f"components_to_stay: {components_to_stay}")
         logger.info(f"components_to_replace: {components_to_replace}")
-        os.system("PAUSE")
+        # os.system("PAUSE")
         if loads is None:
             loads = self._get_coupled_loads()
-        os.system("PAUSE")
+        logger.debug("Fetching static data for loads")
         loads = self._get_load_static_data(loads)
-        os.system("PAUSE")
+        # os.system("PAUSE")
+        logger.debug("Fetching dynamic data for loads")
         loads = self._get_load_dynamic_data(loads)
-        os.system("PAUSE")
+        logger.debug("Creating dummy loads for coupled buses")
         loads = self._replicate_coupled_load(loads, components_to_replace)
-        os.system("PAUSE")
+        # os.system("PAUSE")
+        logger.debug("Updating dynamic parameters for load models")
         self._update_dynamic_parameters(loads, components_to_stay, components_to_replace)
-        os.system("PAUSE")
+        # os.system("PAUSE")
 
     def _update_dynamic_parameters(self, loads: dict, components_to_stay: list, components_to_replace: list):
         """Updates dynamic parameters of composite old / replicated load models
@@ -195,19 +194,30 @@ class DynamicUtils:
             for comp in components_to_stay:
                 count += load[comp]
             for comp in components_to_stay:
-                new_percentages[comp] = load[comp] / count
+                if count == 0:
+                    new_percentages[comp] = 0
+                else:
+                    new_percentages[comp] = load[comp] / count
             for comp in components_to_replace:
                 new_percentages[comp] = 0.0
 
             settings = self._get_load_dynamic_properties(load)
-            #
+
             for k, v in new_percentages.items():
                 idx = dyn_only_options["Loads"]["lmodind"][k]
                 settings[idx] = v
+                logger.debug(f"Dynamic model parameters for load {load['bus']}/{load['id']} at bus XX --> index{idx}, value{v}.")
                 # self.psse.change_ldmod_con(load['bus'], 'XX' ,r"""CMLDBLU2""" ,idx ,v)
             values = list(settings.values())
             self.psse.add_load_model(load["bus"], "XX", 0, 1, r"""CMLDBLU2""", 2, [0, 0], ["", ""], 133, values)
+            # self.psse.add_load_model(load["bus"], "A", 0, 1, r"""CMLDBLU2""", 2, [0, 0], ["", ""], 133, values)
+            # self.psse.add_load_model(load["bus"], "B", 0, 1, r"""CMLDBLU2""", 2, [0, 0], ["", ""], 133, values)
+            # self.psse.add_load_model(load["bus"], "C", 0, 1, r"""CMLDBLU2""", 2, [0, 0], ["", ""], 133, values)
+            # self.psse.add_load_model(load["bus"], "D", 0, 1, r"""CMLDBLU2""", 2, [0, 0], ["", ""], 133, values)
+            # self.psse.add_load_model(load["bus"], "F", 0, 1, r"""CMLDBLU2""", 2, [0, 0], ["", ""], 133, values)
+            # self.psse.add_load_model(load["bus"], "S", 0, 1, r"""CMLDBLU2""", 2, [0, 0], ["", ""], 133, values)
             logger.info(f"Dynamic model parameters for load {load['id']} at bus 'XX' changed. New settings are {values}.")
+
 
     def _get_load_dynamic_properties(self, load):
         "Returns dynamic parameters of composite load models"
@@ -220,7 +230,36 @@ class DynamicUtils:
                 assert ierr == 0, f"error={ierr}"
                 settings[i] = value
         return settings
-
+    
+    def _get_bus_generation(self, bus):
+        "Returns the total generation on an certain bus"
+        generator_list = {}
+        generators = {}
+        for gen_bus, gen_id in self.raw_data.generators:
+            if gen_bus not in generator_list:
+                generator_list[gen_bus] = []
+            generator_list[gen_bus].append(gen_id)
+        try:
+            generators[bus] = generator_list[bus]
+        except:
+            raise Exception(f"Can't get generator on bus {bus}")
+            # logger.warning(f"Can't get generator on bus {bus}")
+        bus_total_p = 0
+        bus_total_q = 0
+        for bus_id, machines in generators.items():
+            for machine in machines:
+                ierr, ival = self.psse.macint(bus_id, machine, 'STATUS')
+                if ival == 1:
+                    ierr, cmpval = self.psse.macdt2(bus_id, machine, 'PQ')
+                    assert ierr == 0, f"error={ierr}"
+                    logger.debug(f"{bus_id}.{machine} generation: {cmpval}")
+                else:
+                    cmpval = complex(0,0)
+                    logger.debug(f"{bus_id}.{machine} offline generation: {cmpval}")
+                bus_total_p += cmpval.real
+                bus_total_q += cmpval.imag
+        return bus_total_p, bus_total_q
+    
     def _replicate_coupled_load(self, loads: dict, components_to_replace: list):
         """create a replica of composite load model
 
@@ -231,10 +270,12 @@ class DynamicUtils:
         Returns:
             dict: updated load dictionary
         """
-        logger.info(f"2222222222222222222222222")
+
         for load in loads:
+            logger.info(f"load : {load}")
             dynamic_percentage = load["FmA"] + load["FmB"] + load["FmC"] + load["FmD"] + load["Fel"]
             static_percentage = 1.0 - dynamic_percentage
+            logger.debug(f"Static properties - Load: Static ->  value:{static_percentage}")
             for comp in components_to_replace:
                 static_percentage += load[comp]
             remaining_load = 1 - static_percentage
@@ -248,20 +289,33 @@ class DynamicUtils:
                 realar=[total_transmission_load.real, total_transmission_load.imag, 0.0, 0.0, 0.0, 0.0],
                 # lodtyp="replica",
             )
-            # ierr, cmpval = self.psse.loddt2(load["bus"], "XX" ,"MVA" , "ACT")
-            # modify old load
-            self.psse.load_data_5(
-                load["bus"],
-                str(load["id"]),
-                realar=[total_distribution_load.real, total_distribution_load.imag, 0.0, 0.0, 0.0, 0.0],
-                # lodtyp="original",
-            )
-            # ierr, cmpval = self.psse.loddt2(load["bus"], load["id"] ,"MVA" , "ACT")
-            logger.info(f"Original load {load['id']} @ bus {load['bus']}: {total_load}")
-            logger.info(f"New load 'XX' @ bus {load['bus']} created successfully: {total_transmission_load}")
-            logger.info(f"Load {load['id']} @ bus {load['bus']} updated : {total_distribution_load}")
-            load["distribution"] = total_distribution_load
-            load["transmission"] = total_transmission_load
+            if (self.settings.helics and self.settings.helics.cosimulation_mode and self.settings.helics.disable_generation_on_coupled_buses 
+                and self.settings.helics.generation_model_level == 'distribution'):
+                total_bus_generation_p, total_bus_generation_q = self._get_bus_generation(load['bus'])
+                logger.info(f"Generation is modeled in distribution level so transmission load is substituted the generation")
+                self.psse.load_data_5(
+                    load["bus"],
+                    str(load["id"]),
+                    realar=[total_distribution_load.real-total_bus_generation_p, total_distribution_load.imag-total_bus_generation_q, 0.0, 0.0, 0.0, 0.0],
+                    # lodtyp="original",
+                )
+                logger.info(f"Original load {load['id']} @ bus {load['bus']}: {total_load}")
+                logger.info(f"New load 'XX' @ bus {load['bus']} created successfully: {total_transmission_load}")
+                logger.info(f"Load {load['id']} @ bus {load['bus']} updated : ({total_distribution_load.real-total_bus_generation_p},{total_distribution_load.imag-total_bus_generation_q})")
+                load["distribution"] = complex(total_distribution_load.real-total_bus_generation_p, total_distribution_load.imag-total_bus_generation_q)
+                load["transmission"] = total_transmission_load
+            else:
+                self.psse.load_data_5(
+                    load["bus"],
+                    str(load["id"]),
+                    realar=[total_distribution_load.real, total_distribution_load.imag, 0.0, 0.0, 0.0, 0.0],
+                    # lodtyp="original",
+                )
+                logger.info(f"Original load {load['id']} @ bus {load['bus']}: {total_load}")
+                logger.info(f"New load 'XX' @ bus {load['bus']} created successfully: {total_transmission_load}")
+                logger.info(f"Load {load['id']} @ bus {load['bus']} updated : {total_distribution_load}")
+                load["distribution"] = total_distribution_load
+                load["transmission"] = total_transmission_load
         logger.info(f"{loads}")
         return loads
 
@@ -307,7 +361,7 @@ class DynamicUtils:
             for v in values:
                 ierr, cmpval = self.psse.loddt2(load["bus"], str(load["id"]), v, "ACT")
                 load[v] = cmpval
-        logger.info(f"{loads}")
+                logger.debug(f"Static properties - Load: {v} -> {cmpval}")
         return loads
 
     def _get_load_dynamic_data(self, loads: list) -> dict:
@@ -335,7 +389,7 @@ class DynamicUtils:
                         ierr, value = self.psse.dsrval("CON", act_con_index)
                         assert ierr == 0, f"error={ierr}"
                         load[v] = value
-        logger.info(f"{loads}")
+                        logger.debug(f"Dynamic properties - Load: {v} -> index: {act_con_index}, value:{value}")
         return loads
 
     def setup_machine_channels(self, machines: dict, properties: list):
@@ -368,13 +422,12 @@ class DynamicUtils:
         if "LOAD_P" not in self.channel_map:
             self.channel_map["LOAD_P"] = {}
             self.channel_map["LOAD_Q"] = {}
-        # logger.info(f"loads {loads}")
+
         for ld, b in loads:
-            logger.info(f"P and Q for load {b}_{ld}")
             self.channel_map["LOAD_P"][f"{b}_{ld}"] = [self.chnl_idx]
             self.channel_map["LOAD_Q"][f"{b}_{ld}"] = [self.chnl_idx + 1]
-            ierr = self.psse.load_array_channel([self.chnl_idx, 1, int(b)], ld, ""); assert ierr == 0, f"error={ierr}"
-            ierr = self.psse.load_array_channel([self.chnl_idx + 1, 2, int(b)], ld, ""); assert ierr == 0, f"error={ierr}"
+            self.psse.load_array_channel([self.chnl_idx, 1, int(b)], ld, "")
+            self.psse.load_array_channel([self.chnl_idx + 1, 2, int(b)], ld, "")
             logger.info(f"P and Q for load {b}_{ld} added to channel {self.chnl_idx} and {self.chnl_idx + 1}")
             self.chnl_idx += 2
 
@@ -409,7 +462,6 @@ class DynamicUtils:
         """
 
         results = {}
-        # logger.info(f"self.channel_map: {self.channel_map}")
         for ppty, b_dict in self.channel_map.items():
             ppty_new = ppty.split("_and_")
             for b, indices in b_dict.items():
@@ -434,8 +486,6 @@ class DynamicUtils:
         self.chnl_idx = 1
         if not self.export_settings.channel_setup:
             return
-        ierr = self.psse.delete_all_plot_channels(); assert ierr == 0, f"error={ierr}"
-        # logger.info(f"self.export_settings.channel_setup {self.export_settings.channel_setup}")
 
         for channel in self.export_settings.channel_setup:
             method_type = channel.asset_type
@@ -444,8 +494,8 @@ class DynamicUtils:
             elif method_type == "loads":
                 load_list = [[x, int(y)] for x, y in channel.asset_list]
                 self.setup_load_channels(load_list)
+                # logger.debug(f"load_list: {load_list}")
+                # os.system("PAUSE")
             elif method_type == "machines":
                 machine_list = [[x, int(y)] for x, y in channel.asset_list]
                 self.setup_machine_channels(machine_list, channel.asset_properties)
-                
-

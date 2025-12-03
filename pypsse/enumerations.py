@@ -48,7 +48,6 @@ class WritableModelTypes(str, Enum):
     LINE_STATUS = "Line_status"
     MACHINE_STATUS = "Machine_status"
 
-
 class ModelTypes(str, Enum):
     "Supported asset tpyes in PyPSSE"
     BUSES = "Buses"

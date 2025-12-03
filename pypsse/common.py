@@ -18,7 +18,6 @@ DEFAULT_PROFILE_MAPPING_FILENAME = "profile_mapping.toml"
 DEFAULT_PROFILE_STORE_FILENAME = "profiles.hdf5"
 DEFAULT_RESULTS_FILENAME = "simulation_results.hdf5"
 
-
 DEFAULT_OUT_FILE = "results.out"
 DEFAULT_OUTX_FILE = "results.outx"
 DEFAULT_EXCEL_FILE = "results.xls"
