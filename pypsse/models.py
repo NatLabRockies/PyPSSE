@@ -490,11 +490,16 @@ class Contingencies(BaseModel):
 
 
 class REGCA1_data_model(BaseModel):
-	iqmax: float=1
-	iqmin: float=-1
+	iqmax: float=1.5
+	iqmin: float=-1.5
 	Tg: float=0.02
 	xf: float=0.25
-
+	volim0:float=1.0
+	volim1:float=1.2
+	lvpnt0:float=0.2
+	lvpnt1:float=0.8
+	khv:float=1.0
+	ccflag:bool=False
 
 class REECA1_data_model(BaseModel):
 	ppriorityflag:bool=False
