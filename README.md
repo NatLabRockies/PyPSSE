@@ -26,6 +26,6 @@ execute the following commands to run tests.
 
 ###
 
-For usage guidance, please see [PyPSSE documentation](https://NREL.github.io/PyPSSE/)
+For usage guidance, please see [PyPSSE documentation](https://natlabrockies.github.io/PyPSSE/)
 
 
