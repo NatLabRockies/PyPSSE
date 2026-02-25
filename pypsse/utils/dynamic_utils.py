@@ -289,7 +289,7 @@ class DynamicUtils:
                 realar=[total_transmission_load.real, total_transmission_load.imag, 0.0, 0.0, 0.0, 0.0],
                 # lodtyp="replica",
             )
-            if (self.settings.helics and self.settings.helics.cosimulation_mode and self.settings.helics.disable_generation_on_coupled_buses 
+            if (self.settings.helics and self.settings.helics.cosimulation_mode and self.settings.simulation.disable_generation_on_coupled_buses 
                 and self.settings.helics.generation_model_level == 'distribution'):
                 total_bus_generation_p, total_bus_generation_q = self._get_bus_generation(load['bus'])
                 logger.info(f"Generation is modeled in distribution level so transmission load is substituted the generation")
