@@ -133,7 +133,7 @@ def explore(project_path, simulations_file, export_file_path, load_filter, load,
             
         is_comp_load[bus] = is_comp
         load_dict[bus].append(ld_id)
-        key = f"{ld_id} _{bus}" if len(ld_id) == 1 else f"{ld_id}_{bus}" 
+        key = f"{bus}_{ld_id}"
         key2 =  f"{bus}_{ld_id}".replace(" ", "") 
         load_p  = max(
             results["Loads_MVA"][key].real + results["Loads_IL"][key].real + results["Loads_YL"][key].real, 
@@ -153,7 +153,7 @@ def explore(project_path, simulations_file, export_file_path, load_filter, load,
         if bus not in generator_dict:
             generator_dict[bus] = []
             bus_gen[bus] = 0
-        key = f"{gen_id} _{bus}" if len(gen_id) == 1 else f"{gen_id}_{bus}" 
+        key = f"{bus}_{gen_id}"
         generator_dict[bus].append(gen_id)
         bus_gen[bus] += results["Machines_MVA"][key]
 
