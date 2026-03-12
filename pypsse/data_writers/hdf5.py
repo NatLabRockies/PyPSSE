@@ -119,7 +119,7 @@ class HDF5Writer:
             if self.step >= len(self.Timestamp):
                 self.Timestamp.resize((len(self.Timestamp) + 1,))
                 self.convergence.resize((len(self.convergence) + 1,))
-            self.Timestamp[self.step - 1] = np.string_(currenttime.strftime("%Y-%m-%d %H:%M:%S.%f"))
+            self.Timestamp[self.step - 1] = np.bytes_(currenttime.strftime("%Y-%m-%d %H:%M:%S.%f"))
             self.convergence[self.step - 1] = convergence
             # Add object status data to a DataFrame
             self.store.flush()
