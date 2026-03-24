@@ -9,7 +9,7 @@ from pypsse.utils.dynamic_utils import DynamicUtils
 
 
 class Snap(AbstractMode, DynamicUtils):
-    "Class defination for snapshat simulation mode (uses snp and sav files)"
+    "Class defination for snapshot simulation mode (uses snp and sav files)"
 
     def __init__(
         self,
@@ -43,7 +43,7 @@ class Snap(AbstractMode, DynamicUtils):
         ierr = self.psse.rstr(str(self.settings.simulation.snp_file))
         #
 
-        # # The following logic only runs when the helics interface is enabled
+        # The following logic only runs when the helics interface is enabled
         self.disable_load_models_for_coupled_buses()
         self.disable_generation_for_coupled_buses()
         ############# ------------------------------------- ###############

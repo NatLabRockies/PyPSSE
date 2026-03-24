@@ -31,7 +31,10 @@ class DynamicUtils:
 
             for _, row in sub_data.iterrows():
                 bus = row["bus"]
-                generators[bus] = generator_list[bus]
+                if bus in generator_list:
+                    generators[bus] = generator_list[bus]
+                else:
+                    logger.warning(f"No generators at coupled bus {bus}; skipping generation disable for this bus.")
 
             for bus_id, machines in generators.items():
                 for machine in machines:
@@ -279,7 +282,10 @@ class DynamicUtils:
             for comp in components_to_replace:
                 static_percentage += load[comp]
             remaining_load = 1 - static_percentage
-            total_load = load["MVA"]
+            # Use TOTAL (MVA + IL + YL) so that constant-current and
+            # constant-admittance portions are included in the split.
+            # Using only MVA would drop the I and Y components.
+            total_load = load["TOTAL"]
             total_distribution_load = total_load * static_percentage
             total_transmission_load = total_load * remaining_load
             # ceate new load
@@ -375,7 +381,9 @@ class DynamicUtils:
         """
         logger.info(f"_get_load_dynamic_data")
         values = dyn_only_options["Loads"]["lmodind"]
+        loads_with_dynamic_data = []
         for load in loads:
+            has_dynamic = True
             for v, con_ind in values.items():
                 ierr = self.psse.inilod(load["bus"])
                 assert ierr == 0, f"error={ierr}"
@@ -383,14 +391,22 @@ class DynamicUtils:
                 assert ierr == 0, f"error={ierr}"
                 if ld_id is not None:
                     ierr, con_index = self.psse.lmodind(load["bus"], ld_id, "CHARAC", "CON")
-                    assert ierr == 0, f"error={ierr}"
+                    if ierr != 0:
+                        logger.warning(
+                            f"No CHARAC load model at bus {load['bus']} load '{ld_id}' "
+                            f"(lmodind ierr={ierr}). Skipping dynamic data for this load."
+                        )
+                        has_dynamic = False
+                        break
                     if con_index is not None:
                         act_con_index = con_index + con_ind
                         ierr, value = self.psse.dsrval("CON", act_con_index)
                         assert ierr == 0, f"error={ierr}"
                         load[v] = value
                         logger.debug(f"Dynamic properties - Load: {v} -> index: {act_con_index}, value:{value}")
-        return loads
+            if has_dynamic:
+                loads_with_dynamic_data.append(load)
+        return loads_with_dynamic_data
 
     def setup_machine_channels(self, machines: dict, properties: list):
         """sets up machine channels
