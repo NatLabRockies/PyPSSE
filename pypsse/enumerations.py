@@ -36,6 +36,8 @@ class GenerationLevel(str, Enum):
 class HelicsCoreTypes(str, Enum):
     "HELICS core types"
     ZMQ = "zmq"
+    TCP_SS="tcp_ss"
+    TCP="tcp"
 
 
 class WritableModelTypes(str, Enum):

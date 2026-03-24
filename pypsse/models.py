@@ -179,7 +179,7 @@ class HelicsSettings(BaseModel):
     iterative_mode: bool = False
     error_tolerance: float = Field(1e-5, g=0)
     max_coiterations: int = Field(15, ge=1)
-    broker_ip: IPvAnyAddress = "127.0.0.1"
+    broker_ip: str="127.0.0.1" #IPvAnyAddress = "127.0.0.1"
     broker_port: int = 23404
     generation_model_level: str = "distribution"
     publications: List[PublicationDefination]
