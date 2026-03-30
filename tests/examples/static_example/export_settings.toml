@@ -2,7 +2,7 @@ export_results_using_channels = false
 defined_subsystems_only = true
 file_format = "h5"
 
-buses = ["PU", "ANGLED", "FREQ"]
+buses = ["PU", "ANGLED", "FREQ", "KV"]
 areas = ["GEN", "AREANAME", "AREANUMBER"]
 zones = ["LOAD", "LOADID"]
 stations = ["SUBNAME", "SUBNUMBER"]

@@ -172,12 +172,10 @@ class DynamicUtils:
             loads = self._get_coupled_loads()
         logger.debug("Fetching static data for loads")
         loads = self._get_load_static_data(loads)
-        # os.system("PAUSE")
         logger.debug("Fetching dynamic data for loads")
         loads = self._get_load_dynamic_data(loads)
         logger.debug("Creating dummy loads for coupled buses")
         loads = self._replicate_coupled_load(loads, components_to_replace)
-        # os.system("PAUSE")
         logger.debug("Updating dynamic parameters for load models")
         self._update_dynamic_parameters(loads, components_to_stay, components_to_replace)
         # os.system("PAUSE")
@@ -332,11 +330,6 @@ class DynamicUtils:
             list: list of coupled loads
         """
         
-        # sub_data = pd.read_csv(
-        #     os.path.join(
-        #         self.settings["Simulation"]["Project Path"], "Settings", self.settings["HELICS"]["Subscriptions file"]
-        #     ) # C:\Users\FXIE\Documents\GitHub\NEARM_TnD\dynamic_cosim_test_cases-model\WECC\Transmission\pypsse_model\Subscriptions.csv
-        # )
         sub_data = pd.read_csv(self.settings.simulation.subscriptions_file)
         load = []
         logger.info(f"_get_coupled_loads")

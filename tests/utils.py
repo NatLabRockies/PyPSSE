@@ -35,6 +35,7 @@ def build_temp_project():
     if not os.path.exists(TMP_FOLDER):
         os.mkdir(TMP_FOLDER)
     settings = PROJECT_CREATION_SETTINGS
+    
     s_settings = toml.load(settings["simulation_file"]) if settings["simulation_file"] else {}
     e_settings = toml.load(settings["export_settings_file"]) if settings["export_settings_file"] else {}
     # TODO: Validate settings
