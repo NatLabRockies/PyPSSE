@@ -3,6 +3,8 @@ CLI to run a PyDSS project
 """
 
 from pathlib import Path
+import sys
+sys.path.append('C:\\Program Files\\PTI\\PSSE35\\35.4\\PSSPY39\\')
 
 from loguru import logger
 import click

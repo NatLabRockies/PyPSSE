@@ -17,7 +17,7 @@ import pandas as pd
 import toml
 from loguru import logger
 from networkx import Graph
-import pssepath
+sys.path.append('C:\\Program Files\\PTI\\PSSE35\\35.4\\PSSPY39\\')#import pssepath
 import pypsse.contingencies as c
 import pypsse.simulation_controller as sc
 from pypsse.common import (
@@ -80,7 +80,7 @@ class Simulator(DynamicUtils):
         self.settings = settings
 
         logger.debug(f"Instantiating psse version {psse_version}")
-        pssepath.add_pssepath(35.4) 
+        #pssepath.add_pssepath(35.4) 
         __import__(psse_version, fromlist=[""])  # noqa: F401
 
         import dyntools

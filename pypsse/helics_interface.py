@@ -204,6 +204,7 @@ class HelicsInterface:
         ), "HELICS co-simulations requires a subscriptions_file property populated"
         sub_data = pd.read_csv(self.settings.simulation.subscriptions_file)
         self.psse_dict = {}
+        subs_by_element_id = {}
         for _, row in sub_data.iterrows():
             try:
                 row["element_property"] = ast.literal_eval(row["element_property"])
@@ -236,15 +237,34 @@ class HelicsInterface:
 
             element_id = str(row["element_id"])
 
-            self.subscriptions[row["sub_tag"]] = {
-                "bus": row["bus"],
-                "element_id": element_id,
-                "element_type": row["element_type"],
-                "property": row["element_property"],
-                "scaler": row["scaler"],
-                "dStates": [self.init_state] * self.n_states,
-                "subscription": h.helicsFederateRegisterSubscription(self.psse_federate, row["sub_tag"], ""),
-            }
+            # if there are multiple inputs with the same element target, then set it up as a multi-input, rather than a subscription:
+            if element_id in subs_by_element_id.keys():
+                matching_id_subs = subs_by_element_id[element_id]
+                subs_by_element_id[element_id].append(row["sub_tag"])
+                input = h.helicsFederateRegisterInput(self.psse_federate, matching_id_subs[0])
+                input.helics_handle_option_multi_input_handling_method = h.HelicsMultiInputMode.HELICS_MULTI_INPUT_NO_OP
+                input.helics_handle_option_targets = subs_by_element_id[element_id]
+                self.subscriptions[matching_id_subs[0]] = {
+                     "bus": row["bus"],
+                    "element_id": element_id,
+                    "element_type": row["element_type"],
+                    "property": row["element_property"],
+                    "scaler": row["scaler"],
+                    "dStates": [self.init_state] * self.n_states,
+                    "subscription": input
+                }
+                msg = f"WARNING: Subscription element id {element_id} is duplicated, processed as multi-input with targets: {subs_by_element_id[element_id]}"
+                raise Warning(msg)
+            else:
+                self.subscriptions[row["sub_tag"]] = {
+                    "bus": row["bus"],
+                    "element_id": element_id,
+                    "element_type": row["element_type"],
+                    "property": row["element_property"],
+                    "scaler": row["scaler"],
+                    "dStates": [self.init_state] * self.n_states,
+                    "subscription": h.helicsFederateRegisterSubscription(self.psse_federate, row["sub_tag"], ""),
+                }
 
             logger.info(
                 "{} property of element {}.{} at bus {} has subscribed to {}".format(
