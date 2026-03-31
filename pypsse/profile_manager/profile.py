@@ -39,6 +39,8 @@ class Profile:
         if self.time < self.stime or self.time > self.etime:
             value = np.array([0] * len(self.profile[0]))
             value1 = np.array([0] * len(self.profile[0]))
+            valuen1 = np.array([0] * len(self.profile[0]))
+            dt2 = self.attrs["resTime"]
         else:
             dt = (self.time - self.stime).total_seconds()
             n = int(dt / self.attrs["resTime"])

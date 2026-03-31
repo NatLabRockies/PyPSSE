@@ -283,7 +283,7 @@ class ProfileManager:
         }
         for key, value in metadata.items():
             if isinstance(value, str):
-                value_mod = np.string_(value)
+                value_mod = np.bytes_(value)
             else:
                 value_mod = value
             d_set.attrs[key] = value_mod

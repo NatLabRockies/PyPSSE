@@ -57,11 +57,11 @@ class SimSettings(BaseModel):
     setup_files: List[str] = []
     simulation_mode: SimulationModes
     disable_generation_on_coupled_buses: bool = True
-    generation_model_level: GenerationLevel
+    generation_model_level: GenerationLevel = GenerationLevel.TRANSMISSION
     generation_std: str = "ieee2800"
-    transmission_ids: List[int]
-    transmission_loads_at_fault: List
-    transmission_loads_clear_fault: List
+    transmission_ids: List[int] = []
+    transmission_loads_at_fault: List = []
+    transmission_loads_clear_fault: List = []
     transmission_loads_markup: bool = False
 
     @model_validator(mode="after")
