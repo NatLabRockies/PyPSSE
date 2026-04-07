@@ -55,7 +55,7 @@ class HelicsInterface:
         self.subscriptions = {}
         self.load_fault = False
         #################################################################
-        # FX: add these hardcored load value to better matching
+        # add these hardcored load values for better matching
         self.load_power = {
             tid: {
             "transmission_loads_at_fault": at_fault,
@@ -82,7 +82,7 @@ class HelicsInterface:
     def create_federate(self):
         """Creates a HELICS co-simulation federate"""
         self.fedinfo = h.helicsCreateFederateInfo()
-        # logger.debug(f"self.fedinfo: {self.fedinfo}")
+        logger.debug(f"self.fedinfo: {self.fedinfo}")
         h.helicsFederateInfoSetCoreName(self.fedinfo, self.settings.helics.federate_name)
         h.helicsFederateInfoSetCoreTypeFromString(self.fedinfo, self.settings.helics.core_type.value)
         h.helicsFederateInfoSetCoreInitString(self.fedinfo, "--federates=1")
@@ -121,7 +121,7 @@ class HelicsInterface:
         self.publications = {}
         self.pub_struc = []
         for publication_dict in self.settings.helics.publications:
-            # logger.debug(f"publication_dict: {publication_dict}")
+            logger.debug(f"publication_dict: {publication_dict}")
             bus_subsystem_ids = publication_dict.bus_subsystems
             if not set(bus_subsystem_ids).issubset(self.bus_subsystems):
                 msg = f"One or more invalid bus subsystem ID pass in {bus_subsystem_ids}."
@@ -137,8 +137,6 @@ class HelicsInterface:
 
             managed_properties = [ptpy.value for ptpy in getattr(self.export_settings, elm_class.lower())]
             properties = [p.value for p in publication_dict.asset_properties]
-            # logger.debug(f"managed_properties: {managed_properties}")
-            # logger.debug(f"properties: {properties}")
 
             if not set(properties).issubset(managed_properties):
                 msg = f"One or more publication property defined for class '{elm_class}' is invalid."
@@ -401,17 +399,16 @@ class HelicsInterface:
 
         "Subscribes results each iteration and updates PSSE objects accordingly"
 
-        # logger.debug(f"self.psse_dict is {self.psse_dict}")
         for sub_tag, sub_data in self.subscriptions.items():
             if isinstance(sub_data["property"], str):
                 sub_data["value"] = h.helicsInputGetDouble(sub_data["subscription"])
-                # logger.debug(f"sub_data is {sub_data}")
+                logger.debug(f"sub_data is {sub_data}")
                 self.psse_dict[sub_data["bus"]][sub_data["element_type"]][sub_data["element_id"]][
                     sub_data["property"]
                 ].append((sub_data["value"], sub_data["scaler"]))
             elif isinstance(sub_data["property"], list):
                 sub_data["value"] = h.helicsInputGetVector(sub_data["subscription"])
-                # logger.debug(f"sub_data is {sub_data}")
+                logger.debug(f"sub_data is {sub_data}")
                 if isinstance(sub_data["value"], list) and len(sub_data["value"]) == len(sub_data["property"]):
                     for i, p in enumerate(sub_data["property"]):
                         self.psse_dict[sub_data["bus"]][sub_data["element_type"]][sub_data["element_id"]][p].append((
@@ -459,7 +456,7 @@ class HelicsInterface:
                     logger.debug(f"{t}.{b}.{i} = {values}")
                     logger.debug(f"current HELICE time: {self.c_seconds}")
                     ######################################################
-                    ## FX: add this for better transit matching
+                    ## add this for better transit matching
                     if round(self.c_seconds, 3) == 0.1 and self.settings.simulation.transmission_loads_markup:
                         logger.debug("the moment of fault")
                         logger.debug(f"old {t}.{b}.{i} = {values}")
@@ -489,7 +486,7 @@ class HelicsInterface:
                         logger.debug("write failed")
         
         ######################################################
-        ## FX: clear the result list
+        ## clear the result list
         for sub_tag, sub_data in self.subscriptions.items():
             if isinstance(sub_data["property"], str):
                 self.psse_dict[sub_data["bus"]][sub_data["element_type"]][sub_data["element_id"]][sub_data["property"]] = []

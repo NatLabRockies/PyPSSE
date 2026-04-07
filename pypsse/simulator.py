@@ -388,15 +388,11 @@ class Simulator(DynamicUtils):
         )
         if self.settings.helics and self.settings.helics.cosimulation_mode:
             if self.settings.helics.create_subscriptions:                
-                # logger.debug(f"Time requested: {t}")
-                # self.inc_time, helics_time = self.update_federate_time(t)
-                # logger.debug(f"Time granted: {helics_time}")
                 self.update_subscriptions()
 
         if self.inc_time:
             logger.debug(f"run PSSE simulation at time: {t}")
             self.sim.step(t)
-            # os.system("PAUSE")
         else:
             self.sim.resolve_step()
 
@@ -405,7 +401,6 @@ class Simulator(DynamicUtils):
 
         if self.settings.helics and self.settings.helics.cosimulation_mode:
             if self.settings.helics.create_subscriptions:
-                # self.update_subscriptions()
                 logger.debug(f"Time requested: {t}")
                 self.inc_time, helics_time = self.update_federate_time(t)
                 logger.debug(f"Time granted: {helics_time}")

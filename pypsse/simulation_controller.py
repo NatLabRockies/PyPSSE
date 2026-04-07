@@ -34,11 +34,8 @@ def sim_controller(
     """
 
     sim_modes = {"Dynamic": Dynamic, "Steady-state": Static, "Snap": Snap, "ProductionCostModel": ProductionCostModel}
-    # print("0000000000000000000000000000000000000000000000000000")
     sim = sim_modes[settings.simulation.simulation_mode.value](
         psse, dyntools, der, settings, export_settings, subsystem_buses, raw_data
     )
-    # print("33333333333333333333333333333333333333333333333333333")
     logger.debug(f"Simulator contoller of type {settings.simulation.simulation_mode.value} created")
-    # print("4444444444444444444444444444444444444444444444444444444")
     return sim

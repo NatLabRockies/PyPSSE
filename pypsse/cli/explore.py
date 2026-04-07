@@ -107,10 +107,6 @@ def explore(project_path, simulations_file, export_file_path, load_filter, load,
         }
     results = x.sim.read_subsystems(quantities,  buses)
 
-    # print(results.keys())
-    # print(results["LOAD_P"])
-    # quit()
-
     had_comp_models = False
     if "Loads_FmA" in results:
         had_comp_models = True

@@ -267,7 +267,6 @@ class ProfileManager:
             info (str): profile info
             p_type (ProfileTypes): profile type
         """
-        # logger.debug(start_time.strftime())
 
         metadata = {
             "sTime": str(start_time),
@@ -296,11 +295,10 @@ class ProfileManager:
         """
 
         results = {}
-        # logger.info(self.profiles)
         for profile_name, profile_obj in self.profiles.items():
             result = profile_obj.update()
             results[profile_name] = result
-        # logger.info(results)
+        logger.debug(results)
         return results
 
     # def __del__(self):

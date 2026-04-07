@@ -35,15 +35,13 @@ def run(project_path, simulations_file=None):
     
     simulation_settiings = toml.load(file_path)
     simulation_settiings = SimulationSettings(**simulation_settiings)
-    if simulation_settiings.log.clear_old_log_file:
-        log_path = Path(project_path) / "Logs" / "pypsse.log"
-        if os.path.exists(log_path):
-            os.remove(log_path)
     logger.level(simulation_settiings.log.logging_level.value)
     if simulation_settiings.log.log_to_external_file:
         log_path = Path(project_path) / "Logs" / "pypsse.log"
-        logger.add(log_path)
-
+        if simulation_settiings.log.clear_old_log_file:
+            logger.add(log_path, mode="w")
+        else:
+            logger.add(log_path)
     
     x = Simulator.from_setting_files(file_path)
 

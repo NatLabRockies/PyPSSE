@@ -46,8 +46,6 @@ class ProfileManagerInterface:
                     norm: True = model_map.get("normalize")
                     dataset = self._store[f"{model_type}/{profile_id}"]
                     data = np.array(np.array(dataset).tolist())
-                    # logger.info(f"data: {data[:10]}")
-                    # os.system("PAUSE")
                     if model_type == "Load":
                         if norm:
                             data_max = np.array(dataset.attrs["max"])

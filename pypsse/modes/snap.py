@@ -79,10 +79,8 @@ class Snap(AbstractMode, DynamicUtils):
         self.psse.delete_all_plot_channels()
 
         self.setup_all_channels()
-        # print("111111111111111111111111111111111111111111111111111111111111111111")
         logger.debug("pyPSSE initialization complete!")
         self.initialization_complete = True
-        # print("222222222222222222222222222222222222222222222222222222222222222222")
         return self.initialization_complete
 
     def step(self, t):
