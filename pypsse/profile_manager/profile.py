@@ -8,7 +8,7 @@ from pypsse.profile_manager.common import PROFILE_VALIDATION
 
 
 class Profile:
-    "Class defination fora single profile"
+    "Class defination for single profile"
 
     DEFAULT_SETTINGS = {"multiplier": 1, "normalize": False, "interpolate": False}
 
@@ -35,9 +35,12 @@ class Profile:
     def update(self, update_object_properties=True):
         "Returns value at the current timestep in the given profile"
         self.time = copy.deepcopy(self.solver.get_time()).astimezone(None)
+        logger.info(f"self.profile: {self.profile}")
         if self.time < self.stime or self.time > self.etime:
             value = np.array([0] * len(self.profile[0]))
             value1 = np.array([0] * len(self.profile[0]))
+            valuen1 = np.array([0] * len(self.profile[0]))
+            dt2 = self.attrs["resTime"]
         else:
             dt = (self.time - self.stime).total_seconds()
             n = int(dt / self.attrs["resTime"])
@@ -46,14 +49,14 @@ class Profile:
                 valuen1 = np.array(list(self.profile[n + 1]))
             except Exception as _:
                 valuen1 = value
-
             dt2 = (
                 self.time - (self.stime + datetime.timedelta(seconds=int(n * self.attrs["resTime"])))
             ).total_seconds()
-            value1 = value + (valuen1 - value) * dt2 / self.attrs["resTime"]
 
         if update_object_properties:
             for obj_name in self.value_settings:
+                if self.value_settings[obj_name]["interpolate"]:
+                    value1 = value + (valuen1 - value) * dt2 / self.attrs["resTime"]
                 bus, object_id = obj_name.split("__")
                 if self.value_settings[obj_name]["interpolate"]:
                     value = value1
@@ -71,6 +74,11 @@ class Profile:
 
     def fill_missing_values(self, value):
         "Fixes issues in profile data"
-        idx = [f"realar{PROFILE_VALIDATION[self.dtype].index(c) + 1}" for c in self.columns]
+        # idx = [f"realar{PROFILE_VALIDATION[self.dtype].index(c) + 1}" for c in self.columns]
+        ## FX: added to handle more data
+        if self.dtype in ["Load","Induction_machine","Machine","Plant"]:
+            idx = [f"realar{PROFILE_VALIDATION[self.dtype].index(c) + 1}" for c in self.columns]
+        else:
+            idx = [f"intgar{PROFILE_VALIDATION[self.dtype].index(c) + 1}" for c in self.columns]
         x = dict(zip(idx, list(value)))
         return x

@@ -40,7 +40,7 @@ class ProfileManager:
         file_path = settings.simulation.project_path / PROFILES_FOLDER / DEFAULT_PROFILE_STORE_FILENAME
 
         if file_path.exists():
-            logger.info("Loading existing h5 store")
+            logger.info(f"Loading existing h5 store: {file_path}")
             self.store = h5py.File(file_path, mode)
         else:
             logger.info("Creating new h5 store")
@@ -80,6 +80,7 @@ class ProfileManager:
                             self.profiles[f"{group}/{profile_name}"] = Profile(
                                 grp[profile_name], self.solver, mapping_dict
                             )
+                            logger.info(rf"Group {group} \ data set {profile_name} is added")
                         else:
                             logger.warning(rf"Group {group} \ data set {profile_name} not found in the h5 store")
                 else:
@@ -281,7 +282,7 @@ class ProfileManager:
         }
         for key, value in metadata.items():
             if isinstance(value, str):
-                value_mod = np.string_(value)
+                value_mod = np.bytes_(value)
             else:
                 value_mod = value
             d_set.attrs[key] = value_mod
@@ -297,7 +298,7 @@ class ProfileManager:
         for profile_name, profile_obj in self.profiles.items():
             result = profile_obj.update()
             results[profile_name] = result
-            
+        logger.debug(results)
         return results
 
     # def __del__(self):

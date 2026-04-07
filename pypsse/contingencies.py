@@ -46,7 +46,14 @@ class BaseFault:
         self.psse = psse
         self.enabled = False
         self.tripped = False
-
+        logger.debug(
+                f"contingency_type : {contingency_type}"
+            )
+        logger.debug(
+                f"settings : {settings}"
+            )
+        # os.system("PAUSE")
+        
     def update(self, t: float):
         """updates a fault event
 
@@ -55,30 +62,27 @@ class BaseFault:
         """
         self.t = t
         if hasattr(self.settings, "duration"):
-            if (
-                self.settings.time + self.settings.duration
-                > t
-                >= self.settings.time
-                and not self.enabled
-            ):
+            if (self.settings.time + self.settings.duration > t >= self.settings.time and not self.enabled):
                 self.enabled = True
                 self.enable_fault()
-            if (
-                t >= self.settings.time + self.settings.duration
-                and self.enabled
-            ):
+            if (t >= self.settings.time + self.settings.duration and self.enabled):
                 self.enabled = False
                 self.disable_fault()
-        elif (
-            not hasattr(self.settings, "duration")
-            and t >= self.settings.time
-            and not self.tripped
-        ):
+        elif (not hasattr(self.settings, "duration") and t >= self.settings.time and not self.tripped):
             self.enable_fault()
             self.tripped = True
 
     def enable_fault(self):
         """enables a fault event"""
+        data_check = getattr(self.psse, self.fault_method)
+        logger.debug(
+                f"data_check : {data_check}"
+            )
+        logger.debug(
+                f"data_check : {self.fault_method}"
+            )
+        # os.system("PAUSE")
+
         err = getattr(self.psse, self.fault_method)(**self.fault_settings)
         if err:
             logger.warning(

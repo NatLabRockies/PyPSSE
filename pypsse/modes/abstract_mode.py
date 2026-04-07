@@ -2,6 +2,7 @@
 
 import numpy as np
 from loguru import logger
+import os
 
 from pypsse.common import CASESTUDY_FOLDER, VALUE_UPDATE_BOUND
 from pypsse.enumerations import ModelTypes, WritableModelTypes
@@ -14,6 +15,7 @@ class AbstractMode:
         self,
         psse,
         dyntools,
+        der,
         settings: SimulationSettings,
         export_settings: ExportFileOptions,
         subsystem_buses,
@@ -33,6 +35,7 @@ class AbstractMode:
 
         self.sub_buses = subsystem_buses
         self.dyntools = dyntools
+        self.der = der
         self.settings = settings
         self.export_settings = export_settings
         self.func_options = {
@@ -264,8 +267,9 @@ class AbstractMode:
         i = 0
         file_path = export_path / f"modified_steady_state_{i}.sav"
         while file_path.exists():
-            file_path = export_path / f"modified_steady_state_{i}.sav"
             i += 1
+            file_path = export_path / f"modified_steady_state_{i}.sav"
+            
 
         savfile = export_path / f"modified_steady_state_{i}.sav"
         rawfile = export_path / f"modified_steady_state_{i}.raw"
@@ -680,9 +684,7 @@ class AbstractMode:
 
                                     elif func_name in ["loddt2", "lodnofunc", "lodint"]:
                                         ierr = self.psse.inilod(int(b))
-
                                         ierr, load_id = self.psse.nxtlod(int(b))
-
                                         while load_id is not None:
                                             if func_name == "lodnofunc":
                                                 if v in ["BUSNUM", "LOADID"]:
@@ -690,18 +692,14 @@ class AbstractMode:
                                                     results = self.add_result(results, q, val, f"{b}_{load_id}")
                                                 elif v == "BUSNAME":
                                                     ierr, val = self.psse.notona(int(b))
-
                                                     results = self.add_result(results, q, val, f"{b}_{load_id}")
                                             elif func_name == "loddt2":
                                                 ierr, val = getattr(self.psse, func_name)(int(b), load_id, v, "ACT")
                                                 results = self.add_result(results, q, val, f"{b}_{load_id}")
                                             elif func_name == "lodint":
                                                 ierr, val = getattr(self.psse, func_name)(int(b), load_id, v)
-
                                                 results = self.add_result(results, q, val, f"{b}_{load_id}")
-
                                             ierr, load_id = self.psse.nxtlod(int(b))
-
                                     elif func_name in ["macdat", "macdt2", "macnofunc", "macint"]:
                                         ierr = self.psse.inimac(int(b))
                                         ierr, mach_id = self.psse.nxtmac(int(b))
@@ -715,33 +713,25 @@ class AbstractMode:
                                                     results = self.add_result(results, q, val, f"{b}_{mach_id}")
                                                 elif v == "SUBNUMBER":
                                                     ierr, val = self.psse.busint(int(b), "STATION")
-
                                                     results = self.add_result(results, q, val, f"{b}_{mach_id}")
-
                                                 elif v == "AREANUMBER":
                                                     ierr, val = self.psse.busint(int(b), "AREA")
-
                                                     results = self.add_result(results, q, val, f"{b}_{mach_id}")
-
                                                 elif v in ["SUBLATITUDE", "SUBLONGITUDE"]:
                                                     sub_dict = {"SUBLATITUDE": "LATI", "SUBLONGITUDE": "LONG"}
                                                     ierr, val = self.psse.busint(int(b), "STATION")
 
                                                     if val:
                                                         ierr, val = self.psse.stadat(val, sub_dict[v])
-
                                                     results = self.add_result(results, q, val, b)
                                             else:
                                                 ierr, val = getattr(self.psse, func_name)(int(b), mach_id, v)
-
                                                 results = self.add_result(results, q, val, f"{b}_{mach_id}")
                                             ierr, mach_id = self.psse.nxtmac(int(b))
 
                                     elif func_name in ["fxsdt2", "fxsnofunc"]:
                                         ierr = self.psse.inifxs(int(b))
-
                                         ierr, fx_id = self.psse.nxtfxs(int(b))
-
                                         while fx_id is not None:
                                             if func_name == "fxsnofunc":
                                                 if v in ["BUSNUM", "FXSHID"]:
@@ -749,35 +739,28 @@ class AbstractMode:
                                                     results = self.add_result(results, q, val, f"{b}_{fx_id}")
                                                 elif v == "BUSNAME":
                                                     ierr, val = self.psse.notona(int(b))
-
                                                     results = self.add_result(results, q, val, f"{b}_{fx_id}")
                                             else:
                                                 ierr, val = getattr(self.psse, func_name)(int(b), fx_id, v)
-
                                                 results = self.add_result(results, q, val, f"{b}_{fx_id}")
                                             ierr, fx_id = self.psse.nxtfxs(int(b))
 
                                     elif func_name in ["swsdt1", "swsnofunc"]:
                                         if func_name == "swsnofunc":
                                             ierr, val = self.psse.swsint(int(b), "STATUS")
-
                                         else:
                                             ierr, val = getattr(self.psse, func_name)(int(b), v)
-
                                         if ierr == 0:
                                             if func_name == "nofunc":
                                                 if v == "BUSNUM":
                                                     val = int(b)
                                                 elif v == "BUSNAME":
                                                     ierr, val = self.psse.notona(int(b))
-
                                             results = self.add_result(results, q, val, b)
 
                                     elif func_name in ["brndat", "brndt2", "brnmsc", "brnint", "brnnofunc"]:
                                         ierr = self.psse.inibrx(int(b), 1)
-
                                         ierr, b1, ickt = self.psse.nxtbrn(int(b))
-
                                         ickt_string = str(ickt)
                                         while ierr == 0:
                                             if func_name == "brnnofunc":
@@ -836,7 +819,6 @@ class AbstractMode:
 
                                             else:
                                                 ierr, val = getattr(self.psse, func_name)(int(b), int(b1), str(ickt), v)
-
                                                 if ierr == 0:
                                                     results = self.add_result(
                                                         results, q, val, f"{b!s}_{b1!s}_{ickt_string}"
@@ -990,21 +972,28 @@ class AbstractMode:
     def update_object(self, dtype, bus, element_id, values: dict):
         val = sum(list(values.values()))
         if val > -VALUE_UPDATE_BOUND and val < VALUE_UPDATE_BOUND:
-            if dtype == WritableModelTypes.LOAD.value:
+            if dtype == WritableModelTypes.LOAD.value or dtype == WritableModelTypes.LOAD_STATUS.value:
                 ierr = self.psse.load_chng_5(ibus=int(bus), id=element_id, **values)
             elif dtype == WritableModelTypes.GENERATOR.value:
                 ierr = self.psse.induction_machine_data(ibus=int(bus), id=element_id, **values)
-            elif dtype == WritableModelTypes.MACHINE.value:
+            elif dtype == WritableModelTypes.MACHINE.value or dtype == WritableModelTypes.MACHINE_STATUS.value:
                 ierr = self.psse.machine_data_2(i=int(bus), id=element_id, **values)
             elif dtype == WritableModelTypes.PLANT.value:
-                ierr = self.psse.plant_data_4(ibus=int(bus), inode=element_id, **values)
+                ierr = self.psse.plant_data_4(ibus=int(bus), inode=0, intgar=[self._i, self._i], **values)
+            elif dtype == WritableModelTypes.LINE_STATUS.value:
+                frombus, tobus = bus.split("_")
+                # old_load = self.psse.brnint(ibus=int(frombus), jbus=int(tobus), ickt=element_id, string='STATUS')
+                # logger.info(f"old line status {bus}-{element_id}: {old_load}")
+                ierr = self.psse.branch_data_3(ibus=int(frombus), jbus=int(tobus), ckt=element_id, **values)
+                # old_load = self.psse.brnint(ibus=int(frombus), jbus=int(tobus), ickt=element_id, string='STATUS')
+                # logger.info(f"new line status {bus}-{element_id}: {old_load}")
             else:
                 ierr = 1
 
             if ierr == 0:
                 logger.info(f"Profile Manager: {dtype} '{element_id}' on bus '{bus}' has been updated. {values}")
             else:
-                logger.error(f"Profile Manager: Error updating {dtype} '{element_id}' on bus '{bus}'.")
-
+                logger.error(f"Profile Manager: Error updating {dtype} '{element_id}' on bus '{bus}'. Error code is {ierr}")
+        
     def has_converged(self):
         return self.psse.solved()

@@ -1,5 +1,5 @@
 from pathlib import Path
-
+import os
 from loguru import logger
 import pandas as pd
 import click
@@ -129,7 +129,7 @@ def explore(project_path, simulations_file, export_file_path, load_filter, load,
             
         is_comp_load[bus] = is_comp
         load_dict[bus].append(ld_id)
-        key = f"{ld_id} _{bus}" if len(ld_id) == 1 else f"{ld_id}_{bus}" 
+        key = f"{bus}_{ld_id}"
         key2 =  f"{bus}_{ld_id}".replace(" ", "") 
         load_p  = max(
             results["Loads_MVA"][key].real + results["Loads_IL"][key].real + results["Loads_YL"][key].real, 
@@ -149,7 +149,7 @@ def explore(project_path, simulations_file, export_file_path, load_filter, load,
         if bus not in generator_dict:
             generator_dict[bus] = []
             bus_gen[bus] = 0
-        key = f"{gen_id} _{bus}" if len(gen_id) == 1 else f"{gen_id}_{bus}" 
+        key = f"{bus}_{gen_id}"
         generator_dict[bus].append(gen_id)
         bus_gen[bus] += results["Machines_MVA"][key]
 
@@ -168,7 +168,7 @@ def explore(project_path, simulations_file, export_file_path, load_filter, load,
         results["is load comp"].append(is_comp_load[bus] if bus in is_comp_load else False)
         results["total P load [MW]"].append(bus_load_real[bus] if bus in bus_load_real else 0)
         results["total Q load [MVar]"].append(bus_load_imag[bus] if bus in bus_load_imag else 0)
-        results["has generation"].append(True if bus in generator_dict else False)
+        results["has generation"].append(True if (bus in generator_dict and bus_gen[bus] > 0)else False)
         results["total generation [MVA]"].append(bus_gen[bus] if bus in bus_gen else 0)
     
     
@@ -200,7 +200,7 @@ def explore(project_path, simulations_file, export_file_path, load_filter, load,
         results=results[(results["total P load [MW]"] >= load_lower) & (results["total P load [MW]"] <= load_upper)]
         results=results[(results["total generation [MVA]"] >= gen_lower) & (results["total generation [MVA]"] <= gen_upper)]
 
-    print(results)    
+    # print(results)    
     results.to_csv(export_file_path)
     logger.info(f"Results exported to {export_file_path.absolute()}")
     

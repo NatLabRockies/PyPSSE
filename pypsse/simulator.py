@@ -17,7 +17,7 @@ import pandas as pd
 import toml
 from loguru import logger
 from networkx import Graph
-
+import pssepath
 import pypsse.contingencies as c
 import pypsse.simulation_controller as sc
 from pypsse.common import (
@@ -48,13 +48,16 @@ from pypsse.profile_manager.profile_store import ProfileManager
 from pypsse.result_container import Container
 from pypsse.models import Contingencies
 from pypsse.enumerations import PSSE_VERSIONS
+from pypsse.utils.dynamic_utils import DynamicUtils
+
+from aggregatedderapp import App
 
 USING_NAERM = 0
 
 N_BUS = 200000
 
 
-class Simulator:
+class Simulator(DynamicUtils):
     "Base class for the simulator"
 
     _status: SimulationStatus = SimulationStatus.NOT_INITIALIZED
@@ -77,6 +80,7 @@ class Simulator:
         self.settings = settings
 
         logger.debug(f"Instantiating psse version {psse_version}")
+        pssepath.add_pssepath(35.4) 
         __import__(psse_version, fromlist=[""])  # noqa: F401
 
         import dyntools
@@ -105,6 +109,7 @@ class Simulator:
 
         self.dyntools = dyntools
         self.psse = psspy
+        self.der = App(showProgress=True)
         # logger.debug('Initializing PSS/E. connecting to license server')
 
         self.start_simulation()
@@ -188,6 +193,7 @@ class Simulator:
         self.sim = sc.sim_controller(
             self.psse,
             self.dyntools,
+            self.der,
             self.settings,
             self.export_settings,
             valid_buses,
@@ -322,7 +328,7 @@ class Simulator:
                 bokeh_server_proc = None
 
             logger.debug(
-                f"Running {self.settings.simulation.simulation_mode.value} simulation for time {self.settings.simulation.simulation_time.total_seconds()} sec"
+                 f"Running {self.settings.simulation.simulation_mode.value} simulation for time {self.settings.simulation.simulation_time.total_seconds()} sec"
             )
             total_simulation_time = (
                 self.settings.simulation.simulation_time.total_seconds()
@@ -376,17 +382,16 @@ class Simulator:
         if self.settings.simulation.use_profile_manager:
             self.pm.update()
         ctime = time.time() - self.simStartTime
+        ierr, rval = self.psse.dsrval('TIME', 0)
         logger.debug(
-            f"Simulation time: {t} seconds\nRun time: {ctime}\npsse time: {self.sim.get_time()}"
+            f"Simulation time: {t} seconds\nRun time: {ctime}\npsse time: {self.sim.get_time()} \nsolver time: {rval}"
         )
         if self.settings.helics and self.settings.helics.cosimulation_mode:
-            if self.settings.helics.create_subscriptions:
+            if self.settings.helics.create_subscriptions:                
                 self.update_subscriptions()
-                logger.debug(f"Time requested: {t}")
-                self.inc_time, helics_time = self.update_federate_time(t)
-                logger.debug(f"Time granted: {helics_time}")
 
         if self.inc_time:
+            logger.debug(f"run PSSE simulation at time: {t}")
             self.sim.step(t)
         else:
             self.sim.resolve_step()
@@ -394,7 +399,19 @@ class Simulator:
         if self.settings.helics and self.settings.helics.cosimulation_mode:
             self.publish_data()
 
+        if self.settings.helics and self.settings.helics.cosimulation_mode:
+            if self.settings.helics.create_subscriptions:
+                logger.debug(f"Time requested: {t}")
+                self.inc_time, helics_time = self.update_federate_time(t)
+                logger.debug(f"Time granted: {helics_time}")
+
         curr_results = self.update_result_container(t)
+        # if t >= 0.2:
+        # The following logic only runs when the helics interface is enabled
+            # self.disable_load_models_for_coupled_buses()
+            # self.disable_generation_for_coupled_buses()
+        # os.system("PAUSE")
+
         return curr_results
 
     def update_result_container(self, t: float) -> dict:

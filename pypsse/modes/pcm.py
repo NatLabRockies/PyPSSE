@@ -10,8 +10,8 @@ from pypsse.utils.dc2ac.dc_ac_algorithm import DC2ACconverter
 
 
 class ProductionCostModel(AbstractMode):
-    def __init__(self, psse, dyntools, settings, export_settings, subsystem_buses, raw_data):
-        super().__init__(psse, dyntools, settings, export_settings, subsystem_buses, raw_data)
+    def __init__(self, psse, dyntools, der, settings, export_settings, subsystem_buses, raw_data):
+        super().__init__(psse, dyntools, der, settings, export_settings, subsystem_buses, raw_data)
         self.time = datetime.datetime.strptime(settings["Simulation"]["Start time"], "%m/%d/%Y %H:%M:%S").astimezone(
             None
         )

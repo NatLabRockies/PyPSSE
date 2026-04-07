@@ -1,17 +1,17 @@
 """
-CLI to run a PyDSS project
-"""
+ CLI to run a PyDSS project
+ """
 
 from pathlib import Path
-
+ 
 from loguru import logger
 import click
 import toml
-
+ 
 from pypsse.models import SimulationSettings
 from pypsse.common import SIMULATION_SETTINGS_FILENAME
 from pypsse.profile_manager_interface import ProfileManagerInterface
-
+ 
 @click.argument(
     "project-path",
 )
@@ -41,4 +41,3 @@ def get_profiles(project_path, simulations_file=None):
     
     profile_interface = ProfileManagerInterface.from_setting_files(file_path)
     profile_interface.get_profiles()
-    

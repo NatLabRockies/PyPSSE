@@ -28,10 +28,16 @@ class SimulationModes(str, Enum):
     STATIC = "Steady-state"
     DYNAMIC = "Dynamic"
 
+class GenerationLevel(str, Enum):
+    "Valid generation level setting modes"
+    TRANSMISSION = "transmission"
+    DISTRIBUTION = "distribution"
 
 class HelicsCoreTypes(str, Enum):
     "HELICS core types"
     ZMQ = "zmq"
+    TCP_SS="tcp_ss"
+    TCP="tcp"
 
 
 class WritableModelTypes(str, Enum):
@@ -40,7 +46,9 @@ class WritableModelTypes(str, Enum):
     PLANT = "Plant"
     MACHINE = "Machine"
     GENERATOR = "Induction_machine"
-
+    LOAD_STATUS = "Load_status"
+    LINE_STATUS = "Line_status"
+    MACHINE_STATUS = "Machine_status"
 
 class ModelTypes(str, Enum):
     "Supported asset tpyes in PyPSSE"

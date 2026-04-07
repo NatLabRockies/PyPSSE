@@ -8,10 +8,10 @@ from pypsse.modes.abstract_mode import AbstractMode
 
 
 class Static(AbstractMode):
-    def __init__(self, psse, dyntools, settings, export_settings, subsystem_buses, raw_data):
+    def __init__(self, psse, dyntools, der, settings, export_settings, subsystem_buses, raw_data):
         "Class defination for steady-state simulation mode"
 
-        super().__init__(psse, dyntools, settings, export_settings, subsystem_buses, raw_data)
+        super().__init__(psse, dyntools, der, settings, export_settings, subsystem_buses, raw_data)
         self.time = settings.simulation.start_time
         self._StartTime = settings.simulation.start_time
         self.incTime = settings.simulation.simulation_step_resolution

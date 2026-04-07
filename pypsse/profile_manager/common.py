@@ -5,6 +5,9 @@ class ProfileTypes(str, Enum):
     INDUCTION_MACHINE = 'Induction_machine'
     MACHINE = 'Machine'
     PLANT = "Plant"
+    LOAD_STATUS = "Load_status"
+    LINE_STATUS = "Line_status"
+    MACHINE_STATUS = "Machine_status"
 
 PROFILE_VALIDATION = {
     ProfileTypes.LOAD: ["PL", "QL", "IP", "IQ", "YP", "YQ", "PG", "QG"],
@@ -52,6 +55,9 @@ PROFILE_VALIDATION = {
         "WPF",
     ],
     ProfileTypes.PLANT: ["VS", "RMPCT"],
+    ProfileTypes.LOAD_STATUS: ["STATUS"],
+    ProfileTypes.LINE_STATUS: ["STATUS"],
+    ProfileTypes.MACHINE_STATUS: ["STATUS"],
 }
 
 DEFAULT_PROFILE_NAME = "Default"

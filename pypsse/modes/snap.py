@@ -1,5 +1,6 @@
 import numpy as np
 from loguru import logger
+import os
 
 from pypsse.models import SimulationSettings, ExportFileOptions
 from pypsse.modes.abstract_mode import AbstractMode
@@ -8,18 +9,19 @@ from pypsse.utils.dynamic_utils import DynamicUtils
 
 
 class Snap(AbstractMode, DynamicUtils):
-    "Class defination for snapshat simulation mode (uses snp and sav files)"
+    "Class defination for snapshot simulation mode (uses snp and sav files)"
 
     def __init__(
         self,
         psse,
         dyntools,
+        der,
         settings: SimulationSettings,
         export_settings: ExportFileOptions,
         subsystem_buses,
         raw_data,
     ):
-        super().__init__(psse, dyntools, settings, export_settings, subsystem_buses, raw_data)
+        super().__init__(psse, dyntools, der, settings, export_settings, subsystem_buses, raw_data)
         self.time = settings.simulation.start_time
         self._StartTime = settings.simulation.start_time
         self.incTime = settings.simulation.simulation_step_resolution
@@ -43,8 +45,7 @@ class Snap(AbstractMode, DynamicUtils):
 
         # The following logic only runs when the helics interface is enabled
         self.disable_load_models_for_coupled_buses()
-        #self.disable_generation_for_coupled_buses()
-        # self.save_model()
+        self.disable_generation_for_coupled_buses()
         ############# ------------------------------------- ###############
         outx_file  = str(self.settings.export.outx_file).split("\\")
         outx_file[-1] = self.export_settings.filename_prefix + "_" + outx_file[-1]
@@ -78,7 +79,6 @@ class Snap(AbstractMode, DynamicUtils):
         self.psse.delete_all_plot_channels()
 
         self.setup_all_channels()
-
         logger.debug("pyPSSE initialization complete!")
         self.initialization_complete = True
         return self.initialization_complete
@@ -87,6 +87,9 @@ class Snap(AbstractMode, DynamicUtils):
         "Increments the simulation"
         self.time = self.time + self.incTime
         self.xTime = 0
+        if self.settings.simulation.disable_generation_on_coupled_buses and self.settings.simulation.generation_model_level.lower() == "transmission" and len(self.settings.simulation.transmission_ibrs) > 0:
+            # FX: if transmission DER model is disable and ibr is defined
+            self.der.update_ibr()
         return self.psse.run(0, t + self.incTime.total_seconds(), 1, 1, 1)
 
     def resolve_step(self, t):
@@ -168,6 +171,6 @@ class Snap(AbstractMode, DynamicUtils):
                                                 obj_name = f"{bus}_{ld_id}"
                                                 results[res_base][obj_name] = value
             else:
-                logger.warning("Extend function 'read_subsystems' in the Snap class (Snap.py)")
+                logger.warning(f"{class_name} not in the option")
 
         return results

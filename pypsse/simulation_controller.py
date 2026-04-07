@@ -13,6 +13,7 @@ from pypsse.parsers.reader import Reader
 def sim_controller(
     psse: object,
     dyntools: object,
+    der: object,
     settings: SimulationSettings,
     export_settings: ExportFileOptions,
     subsystem_buses: dict,
@@ -33,9 +34,8 @@ def sim_controller(
     """
 
     sim_modes = {"Dynamic": Dynamic, "Steady-state": Static, "Snap": Snap, "ProductionCostModel": ProductionCostModel}
-
     sim = sim_modes[settings.simulation.simulation_mode.value](
-        psse, dyntools, settings, export_settings, subsystem_buses, raw_data
+        psse, dyntools, der, settings, export_settings, subsystem_buses, raw_data
     )
     logger.debug(f"Simulator contoller of type {settings.simulation.simulation_mode.value} created")
     return sim

@@ -13,12 +13,13 @@ class Dynamic(AbstractMode, DynamicUtils):
         self,
         psse,
         dyntools,
+        der,
         settings: SimulationSettings,
         export_settings: ExportFileOptions,
         subsystem_buses,
         raw_data,
     ):
-        super().__init__(psse, dyntools, settings, export_settings, subsystem_buses, raw_data)
+        super().__init__(psse, dyntools, der, settings, export_settings, subsystem_buses, raw_data)
         self.time = settings.simulation.start_time
         self._StartTime = settings.simulation.start_time
         self.incTime = settings.simulation.simulation_step_resolution
@@ -118,7 +119,9 @@ class Dynamic(AbstractMode, DynamicUtils):
 
         self.time = self.time + self.incTime
         self.xTime = 0
-        return self.psse.run(0, t, 1, 1, 1)
+        # self.psse.run(0, t + self.incTime.total_seconds(), 1, 1, 1)
+        # self.psse.run(0, t + self.incTime.total_seconds(), 1, 1, 1)
+        return self.psse.run(0, t + self.incTime.total_seconds(), 1, 1, 1)
 
     # @kapil do you need this?
     
