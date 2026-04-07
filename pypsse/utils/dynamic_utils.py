@@ -140,7 +140,6 @@ class DynamicUtils:
         if self.settings.helics and self.settings.helics.cosimulation_mode:
             sub_data = pd.read_csv(self.settings.simulation.subscriptions_file)
             sub_data = sub_data[sub_data["element_type"] == "Load"]
-            ### add by Aadil
             logger.debug("Implementing load brek logic for dynamic cosimulations")
             self.break_loads_for_dynamic_cosimulations(loads=None, components_to_replace=["FmD"])
 
@@ -455,12 +454,12 @@ class DynamicUtils:
                 if qty == "frequency":
                     self.channel_map[qty][b] = [self.chnl_idx]
                     self.psse.bus_frequency_channel([self.chnl_idx, int(b)], "")
-                    # logger.info(f"Frequency for bus {b} added to channel { self.chnl_idx}")
+                    logger.debug(f"Frequency for bus {b} added to channel { self.chnl_idx}")
                     self.chnl_idx += 1
                 elif qty == "voltage_and_angle":
                     self.channel_map[qty][b] = [self.chnl_idx, self.chnl_idx + 1]
                     self.psse.voltage_and_angle_channel([self.chnl_idx, -1, -1, int(b)], "")
-                    # logger.info(f"Voltage and angle for bus {b} added to channel {self.chnl_idx} and {self.chnl_idx+1}")
+                    logger.debug(f"Voltage and angle for bus {b} added to channel {self.chnl_idx} and {self.chnl_idx+1}")
                     self.chnl_idx += 2
 
     def poll_channels(self) -> dict:
@@ -503,8 +502,7 @@ class DynamicUtils:
             elif method_type == "loads":
                 load_list = [[x, int(y)] for x, y in channel.asset_list]
                 self.setup_load_channels(load_list)
-                # logger.debug(f"load_list: {load_list}")
-                # os.system("PAUSE")
+                logger.debug(f"load_list: {load_list}")
             elif method_type == "machines":
                 machine_list = [[x, int(y)] for x, y in channel.asset_list]
                 self.setup_machine_channels(machine_list, channel.asset_properties)
