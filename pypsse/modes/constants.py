@@ -14,6 +14,10 @@ dyn_only_options = {
             "FmD": 21,
             "Fel": 22,
             "PFel": 23,
+            "P1c": 28,
+            "P2c": 30,
+            "Q1c": 33,
+            "Q2c": 35,
         }
     },
 }
@@ -26,6 +30,10 @@ DYNAMIC_ONLY_PPTY = {
         "FmD": ["FmD"],
         "Fel": ["Fel"],
         "PFel": ["PFel"],
+        "P1c": ["P1c"],
+        "P2c": ["P2c"],
+        "Q1c": ["Q1c"],
+        "Q2c": ["Q2c"],
         "TD": ["TD"],
         "TC": ["TC"],
     }

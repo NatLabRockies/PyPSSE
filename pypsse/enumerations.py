@@ -178,6 +178,10 @@ class LoadProperties(str, Enum):
     FmD = "FmD"
     Fel = "Fel"
     PFel = "PFel"
+    P1c = "P1c"
+    P2c = "P2c"
+    Q1c = "Q1c"
+    Q2c = "Q2c"
     TD = "TD"
     TC = "TC"
 
