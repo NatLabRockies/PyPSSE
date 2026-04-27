@@ -235,7 +235,7 @@ class HelicsInterface:
 
             element_id = str(row["element_id"])
 
-            subscription_element = f"{element_id}.{row["element_property"]}"
+            subscription_element = f"{element_id}.{row['element_property']}"
             subscription_tag = row["sub_tag"]
             if subscription_element in subscription_elements.keys():
                 # if you have multiple subscriptions for the same element, update the existing subscription row
