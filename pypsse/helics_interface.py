@@ -197,7 +197,7 @@ class HelicsInterface:
         """
 
         self.subscriptions = {}
-        subscription_elements = []
+        subscription_elements = {}
         assert (
             self.settings.simulation.subscriptions_file
         ), "HELICS co-simulations requires a subscriptions_file property populated"
@@ -261,7 +261,7 @@ class HelicsInterface:
                 }
 
             else:
-                subscription_elements[subscription_element] = {}
+                subscription_elements[subscription_element] = []
                 subscription_elements[subscription_element] = [subscription_tag]
                 self.subscriptions[row["sub_tag"]] = {
                     "bus": row["bus"],
