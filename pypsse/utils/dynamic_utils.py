@@ -136,15 +136,39 @@ class DynamicUtils:
 
 
     def disable_load_models_for_coupled_buses(self):
-        """Disables loads of coupled buses (co-simulation mode only)"""
+        """Split coupled loads and disable their distribution-side dynamic models.
+
+        In co-simulation mode, the optional boolean ``replace_motor_abc``
+        subscription column selects the components represented on distribution.
+        True assigns static load and motors A/B/C/D to distribution, leaving
+        electronic load on transmission. False or an absent column assigns
+        only static load and motor D to distribution, retaining motors A/B/C
+        and electronic load on transmission.
+
+        All subscriptions for the same bus/load must agree on motor placement.
+
+        Raises:
+            ValueError: Motor-placement values are invalid or inconsistent for
+                a coupled bus/load.
+        """
         if self.settings.helics and self.settings.helics.cosimulation_mode:
             sub_data = pd.read_csv(self.settings.simulation.subscriptions_file)
             sub_data = sub_data[sub_data["element_type"] == "Load"]
             logger.debug("Implementing load brek logic for dynamic cosimulations")
-            self.break_loads_for_dynamic_cosimulations(loads=None, components_to_replace=["FmD"])
+            for (bus, load_id), rows in sub_data.groupby(["bus", "element_id"]):
+                placements = rows.get("replace_motor_abc", pd.Series(False, index=rows.index))
+                if placements.isna().any() or not placements.isin([True, False]).all():
+                    raise ValueError(f"Invalid replace_motor_abc subscription for load {bus}/{load_id}")
+                if placements.nunique() != 1:
+                    raise ValueError(f"Inconsistent replace_motor_abc subscriptions for load {bus}/{load_id}")
+                components = ["FmA", "FmB", "FmC", "FmD"] if placements.iloc[0] else ["FmD"]
+                self.break_loads_for_dynamic_cosimulations(
+                    loads=[{"type": "Load", "id": str(load_id), "bus": int(bus)}],
+                    components_to_replace=components,
+                )
 
             self.psse_dict = {}
-            for _, row in sub_data.iterrows():
+            for _, row in sub_data.drop_duplicates(["bus", "element_id"]).iterrows():
                 bus = row["bus"]
                 load = row["element_id"]
                 ierr = self.psse.ldmod_status(0, int(bus), str(load), 1, 0)
