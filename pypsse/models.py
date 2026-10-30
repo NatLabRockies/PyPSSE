@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Dict, List, Literal, Optional, Union, Any
 
 import pandas as pd
-from pydantic import UUID4, BaseModel, Field, model_validator
+from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.networks import IPvAnyAddress
 from typing_extensions import Annotated
 
@@ -247,6 +247,8 @@ class GeneratorSettings(BaseModel):
 
 class BusFault(BaseModel):
     "Bus fault model defination"
+    model_config = ConfigDict(extra="forbid")
+
     time: float = 0.2
     bus_id: int = 38205
     duration: float = 0.3
@@ -260,12 +262,16 @@ class BusFault(BaseModel):
 
 class BusTrip(BaseModel):
     "Bus trip model defination"
+    model_config = ConfigDict(extra="forbid")
+
     time: float = 0.2
     bus_id: int = 38205
 
 
 class LineFault(BaseModel):
     "Line fault model defination"
+    model_config = ConfigDict(extra="forbid")
+
     time: float = 0.2
     bus_ids: List[int]
     duration: float = 0.3
@@ -279,12 +285,16 @@ class LineFault(BaseModel):
 
 class LineTrip(BaseModel):
     "Line trip model defination"
+    model_config = ConfigDict(extra="forbid")
+
     time: float = 0.2
     bus_ids: List[int]
 
 
 class MachineTrip(BaseModel):
     "Machine trip model defination"
+    model_config = ConfigDict(extra="forbid")
+
     time: float = 0.2
     bus_id: int = 38205
     machine_id: str = ""
@@ -305,6 +315,18 @@ class SimulationSettings(BaseModel):
     contingencies: Optional[
         List[Union[BusFault, LineFault, LineTrip, BusTrip, MachineTrip]]
     ] = None
+
+    @field_validator("contingencies", mode="before")
+    @classmethod
+    def parse_machine_trip_contingencies(cls, contingencies):
+        if contingencies is None:
+            return contingencies
+        return [
+            MachineTrip(**contingency)
+            if isinstance(contingency, dict) and "machine_id" in contingency
+            else contingency
+            for contingency in contingencies
+        ]
 
     @model_validator(mode="after")
     def validate_export_paths(self):

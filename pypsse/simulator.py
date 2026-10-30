@@ -135,6 +135,14 @@ class Simulator(DynamicUtils):
             )
 
         simulation_settiings = SimulationSettings(**simulation_settiings)
+        logger.debug(
+            "Simulator parsed contingencies: {}".format(
+                [
+                    type(contingency).__name__
+                    for contingency in simulation_settiings.contingencies or []
+                ]
+            )
+        )
         export_Settings = ExportFileOptions(**export_Settings)
         return cls(simulation_settiings, export_Settings)
 
